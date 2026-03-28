@@ -3,21 +3,13 @@ import { ActivityIndicator, View } from "react-native";
 import { Slot, router, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { queryClient } from "@/lib/query-client";
 import { useAuthStore } from "@/stores/auth.store";
 import { useLockStore } from "@/stores/lock.store";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      retry: 2,
-    },
-  },
-});
 
 function AuthGuard() {
   const segments = useSegments();

@@ -30,6 +30,7 @@ export interface Database {
           owner_id?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       workspace_members: {
         Row: {
@@ -52,6 +53,7 @@ export interface Database {
           role?: "owner" | "member";
           accepted_at?: string | null;
         };
+        Relationships: [];
       };
       profiles: {
         Row: {
@@ -79,6 +81,7 @@ export interface Database {
           locale?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       categories: {
         Row: {
@@ -105,6 +108,7 @@ export interface Database {
           color?: string;
           is_default?: boolean;
         };
+        Relationships: [];
       };
       transactions: {
         Row: {
@@ -148,6 +152,7 @@ export interface Database {
           date?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       recurring_rules: {
         Row: {
@@ -185,6 +190,7 @@ export interface Database {
           end_date?: string | null;
           next_occurrence?: string;
         };
+        Relationships: [];
       };
       exchange_rates: {
         Row: {
@@ -201,6 +207,7 @@ export interface Database {
           rate_to_eur?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       budgets: {
         Row: {
@@ -223,6 +230,7 @@ export interface Database {
           amount_eur?: number;
           period?: "monthly" | "yearly";
         };
+        Relationships: [];
       };
       investments: {
         Row: {
@@ -255,6 +263,7 @@ export interface Database {
           current_price_eur?: number;
           currency?: string;
         };
+        Relationships: [];
       };
       goals: {
         Row: {
@@ -281,6 +290,7 @@ export interface Database {
           current_amount_eur?: number;
           deadline?: string | null;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -291,5 +301,6 @@ export interface Database {
       member_role: "owner" | "member";
       budget_period: "monthly" | "yearly";
     };
+    CompositeTypes: Record<string, never>;
   };
 }
