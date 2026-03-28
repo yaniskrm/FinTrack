@@ -4,7 +4,7 @@
 -- ============================================================
 
 -- Extensions
-create extension if not exists "uuid-ossp";
+-- uuid-ossp not needed: gen_random_uuid() is built-in since PostgreSQL 13
 create extension if not exists "pg_trgm"; -- full-text search on transactions
 
 -- ─── Enums ──────────────────────────────────────────────────
@@ -17,7 +17,7 @@ create type budget_period as enum ('monthly', 'yearly');
 -- ─── Workspaces ─────────────────────────────────────────────
 
 create table workspaces (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   name        text not null,
   owner_id    uuid not null references auth.users(id) on delete cascade,
   created_at  timestamptz not null default now(),
@@ -27,7 +27,7 @@ create table workspaces (
 -- ─── Workspace members ──────────────────────────────────────
 
 create table workspace_members (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   workspace_id  uuid not null references workspaces(id) on delete cascade,
   user_id       uuid not null references auth.users(id) on delete cascade,
   role          member_role not null default 'member',
@@ -83,7 +83,7 @@ create trigger on_auth_user_created
 -- ─── Categories ─────────────────────────────────────────────
 
 create table categories (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   workspace_id  uuid not null references workspaces(id) on delete cascade,
   name          text not null,
   icon          text not null default '📦',
@@ -110,7 +110,7 @@ insert into exchange_rates (currency, rate_to_eur) values ('EUR', 1.0);
 -- ─── Transactions ────────────────────────────────────────────
 
 create table transactions (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   workspace_id      uuid not null references workspaces(id) on delete cascade,
   category_id       uuid references categories(id) on delete set null,
   amount            numeric(18, 2) not null check (amount > 0),
@@ -135,7 +135,7 @@ create index transactions_label_trgm_idx on transactions using gin(label gin_trg
 -- ─── Recurring rules ─────────────────────────────────────────
 
 create table recurring_rules (
-  id                uuid primary key default uuid_generate_v4(),
+  id                uuid primary key default gen_random_uuid(),
   workspace_id      uuid not null references workspaces(id) on delete cascade,
   category_id       uuid references categories(id) on delete set null,
   amount            numeric(18, 2) not null check (amount > 0),
@@ -161,7 +161,7 @@ alter table transactions
 -- ─── Budgets ─────────────────────────────────────────────────
 
 create table budgets (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   workspace_id  uuid not null references workspaces(id) on delete cascade,
   category_id   uuid not null references categories(id) on delete cascade,
   amount_eur    numeric(18, 2) not null check (amount_eur > 0),
@@ -175,7 +175,7 @@ create index budgets_workspace_id_idx on budgets(workspace_id);
 -- ─── Investments ─────────────────────────────────────────────
 
 create table investments (
-  id                  uuid primary key default uuid_generate_v4(),
+  id                  uuid primary key default gen_random_uuid(),
   workspace_id        uuid not null references workspaces(id) on delete cascade,
   name                text not null,
   ticker              text,
@@ -191,7 +191,7 @@ create index investments_workspace_id_idx on investments(workspace_id);
 -- ─── Goals ───────────────────────────────────────────────────
 
 create table goals (
-  id                  uuid primary key default uuid_generate_v4(),
+  id                  uuid primary key default gen_random_uuid(),
   workspace_id        uuid not null references workspaces(id) on delete cascade,
   name                text not null,
   target_amount_eur   numeric(18, 2) not null check (target_amount_eur > 0),
