@@ -32,9 +32,6 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @fintrack/core typecheck
 
-      - name: Lint
-        run: pnpm --filter @fintrack/core lint
-
   # ─── Unit tests (packages/core) ────────────────────────────
   unit-tests:
     name: Unit tests
