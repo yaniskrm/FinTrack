@@ -71,8 +71,6 @@ jobs:
     runs-on: ubuntu-latest
     # Only run on PRs to main to keep CI fast on feature branches
     if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
-    services:
-      # Supabase is started via CLI, not docker-compose directly
     steps:
       - uses: actions/checkout@v4
 
