@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "jsx": "react-native",
+    "lib": ["ES2022", "DOM"],
+    "paths": {
+      "@fintrack/core": ["../core/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
