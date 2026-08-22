@@ -148,7 +148,7 @@ export function TransactionsView({
                     {sign}
                     {formatCurrency(tx.amount, tx.currency as Currency)}
                   </p>
-                  {tx.currency !== "EUR" && (
+                  {tx.currency !== "EUR" && !tx.id.startsWith("optimistic-") && (
                     <p
                       className="text-xs text-muted-foreground tabular-nums"
                       title={

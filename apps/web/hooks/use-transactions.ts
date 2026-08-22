@@ -62,14 +62,21 @@ export function useCreateTransaction() {
     onMutate: async (values) => {
       await qc.cancelQueries({ queryKey: TRANSACTIONS_KEY });
       const previous = qc.getQueryData<TransactionRow[]>(TRANSACTIONS_KEY) ?? [];
-      qc.setQueryData<TransactionRow[]>(TRANSACTIONS_KEY, sortByDateDesc([optimisticRow(values), ...previous]));
-      return { previous };
+      const optimistic = optimisticRow(values);
+      qc.setQueryData<TransactionRow[]>(TRANSACTIONS_KEY, sortByDateDesc([optimistic, ...previous]));
+      return { previous, optimisticId: optimistic.id };
     },
     onError: (_error, _values, context) => {
       if (context) qc.setQueryData(TRANSACTIONS_KEY, context.previous);
       toast.error("Échec de l'ajout. Modification annulée.");
     },
-    onSuccess: () => {
+    onSuccess: (transaction, _values, context) => {
+      // Swap the optimistic row for the server row so the frozen amount_eur
+      // (the real conversion) replaces the client-side estimate immediately,
+      // without waiting on the background refetch.
+      qc.setQueryData<TransactionRow[]>(TRANSACTIONS_KEY, (rows) =>
+        sortByDateDesc((rows ?? []).map((row) => (row.id === context.optimisticId ? transaction : row))),
+      );
       toast.success("Transaction ajoutée.");
     },
     onSettled: () => {
@@ -112,7 +119,11 @@ export function useUpdateTransaction() {
       if (context) qc.setQueryData(TRANSACTIONS_KEY, context.previous);
       toast.error("Échec de la modification. Modification annulée.");
     },
-    onSuccess: () => {
+    onSuccess: (transaction) => {
+      // Replace the optimistic edit with the server row (correct amount_eur).
+      qc.setQueryData<TransactionRow[]>(TRANSACTIONS_KEY, (rows) =>
+        sortByDateDesc((rows ?? []).map((row) => (row.id === transaction.id ? transaction : row))),
+      );
       toast.success("Transaction modifiée.");
     },
     onSettled: () => {
