@@ -4,11 +4,11 @@ import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { DefaultValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SUPPORTED_CURRENCIES, transactionInputSchema } from "@fintrack/core";
+import { transactionInputSchema } from "@fintrack/core";
 import type { TransactionFormValues } from "@fintrack/core";
 import { useCreateTransaction, useUpdateTransaction } from "../../hooks/use-transactions";
-import { currencyMeta } from "../../lib/currencies";
 import type { CategoryRow } from "../../lib/transactions/types";
+import { CurrencyCombobox } from "./currency-combobox";
 import {
   Dialog,
   DialogContent,
@@ -161,26 +161,7 @@ export function TransactionDialog({
                 control={control}
                 name="currency"
                 render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="currency" aria-label="Devise">
-                      <span className="flex items-center gap-1.5">
-                        <span aria-hidden>{currencyMeta(field.value).flag}</span>
-                        {field.value}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUPPORTED_CURRENCIES.map((c) => {
-                        const meta = currencyMeta(c);
-                        return (
-                          <SelectItem key={c} value={c}>
-                            <span aria-hidden>{meta.flag}</span>
-                            <span className="font-medium">{c}</span>
-                            <span className="text-muted-foreground">— {meta.name}</span>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <CurrencyCombobox id="currency" value={field.value} onChange={field.onChange} />
                 )}
               />
             </div>
