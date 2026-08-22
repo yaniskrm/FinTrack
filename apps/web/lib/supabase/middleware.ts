@@ -44,7 +44,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return redirect;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   const supabase = createServerClient(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),

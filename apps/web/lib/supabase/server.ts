@@ -31,9 +31,6 @@ export async function createClient() {
     },
   };
 
-  // False positive below: we pass only getAll/setAll (no get/set/remove), but the rule
-  // still flags the overloaded `createServerClient` signature as deprecated.
-  // eslint-disable-next-line @typescript-eslint/no-deprecated
   return createServerClient<Database>(
     requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),

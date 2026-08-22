@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, LogOut, Menu, Shield, X } from "lucide-react";
+import { ArrowLeftRight, LayoutDashboard, LogOut, Menu, Shield, X } from "lucide-react";
 import { signOutAction } from "../lib/auth/actions";
 import { ThemeToggle } from "./theme-toggle";
 import { Wordmark } from "./logo";
@@ -13,6 +13,7 @@ import { cn } from "../lib/utils";
 
 const NAV = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+  { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/settings/security", label: "Sécurité", icon: Shield },
 ] as const;
 

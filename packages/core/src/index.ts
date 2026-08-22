@@ -14,5 +14,6 @@ export * from "./currency/formatting.js";
 export * from "./validators/auth.js";
 export * from "./validators/mfa.js";
 export * from "./validators/transaction.js";
+export * from "./validators/transaction-schema.js";
 export { validateRecurringRule, getNextOccurrence } from "./validators/recurring.js";
 export type { RecurringRuleInput } from "./validators/recurring.js";

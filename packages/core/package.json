@@ -23,5 +23,8 @@
   "devDependencies": {
     "@vitest/coverage-v8": "^2.1.8",
     "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   }
 }

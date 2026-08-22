@@ -24,6 +24,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/.expo/**",
       "**/coverage/**",
+      "**/database.types.ts",
       "eslint.config.mjs",
     ],
   }
