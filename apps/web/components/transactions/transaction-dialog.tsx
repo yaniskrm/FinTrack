@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SUPPORTED_CURRENCIES, transactionInputSchema } from "@fintrack/core";
 import type { TransactionFormValues } from "@fintrack/core";
 import { useCreateTransaction, useUpdateTransaction } from "../../hooks/use-transactions";
-import { CURRENCY_META } from "../../lib/currencies";
+import { currencyMeta } from "../../lib/currencies";
 import type { CategoryRow } from "../../lib/transactions/types";
 import {
   Dialog,
@@ -164,18 +164,21 @@ export function TransactionDialog({
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger id="currency" aria-label="Devise">
                       <span className="flex items-center gap-1.5">
-                        <span aria-hidden>{CURRENCY_META[field.value].flag}</span>
+                        <span aria-hidden>{currencyMeta(field.value).flag}</span>
                         {field.value}
                       </span>
                     </SelectTrigger>
                     <SelectContent>
-                      {SUPPORTED_CURRENCIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          <span aria-hidden>{CURRENCY_META[c].flag}</span>
-                          <span className="font-medium">{c}</span>
-                          <span className="text-muted-foreground">— {CURRENCY_META[c].name}</span>
-                        </SelectItem>
-                      ))}
+                      {SUPPORTED_CURRENCIES.map((c) => {
+                        const meta = currencyMeta(c);
+                        return (
+                          <SelectItem key={c} value={c}>
+                            <span aria-hidden>{meta.flag}</span>
+                            <span className="font-medium">{c}</span>
+                            <span className="text-muted-foreground">— {meta.name}</span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}

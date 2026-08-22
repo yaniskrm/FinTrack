@@ -1,14 +1,10 @@
 -- ============================================================
--- FinTrack — Local development seed
--- Run with: supabase db reset
+-- FinTrack — Bootstrap all 165 supported currencies
 -- ============================================================
-
--- Exchange rates for all 165 supported currencies.
--- rate_to_eur = how many EUR = 1 unit of this currency.
--- Refreshed daily in production by the exchange-rates Edge Function
--- (source: open.er-api.com). Values below are a real snapshot for local dev.
+-- Ensures the transactions.currency FK holds in production for every
+-- supported currency before the exchange-rates cron has run. Initial values
+-- only; refreshed daily by the Edge Function. Idempotent. EUR already exists.
 insert into exchange_rates (currency, rate_to_eur) values
-  ('EUR', 1),
   ('USD', 0.85602513),
   ('GBP', 1.16819564),
   ('CHF', 1.06885683),
@@ -173,6 +169,4 @@ insert into exchange_rates (currency, rate_to_eur) values
   ('ZMW', 0.0452658),
   ('ZWG', 0.0321184),
   ('ZWL', 0.0321184)
-on conflict (currency) do update set
-  rate_to_eur = excluded.rate_to_eur,
-  updated_at = now();
+on conflict (currency) do nothing;
