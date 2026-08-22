@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LoginForm } from "./LoginForm";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 export const metadata: Metadata = {
-  title: "Connexion — FinTrack",
+  title: "Mot de passe oublié — FinTrack",
 };
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-center text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-        Bienvenue
+        Mot de passe oublié
       </h1>
 
-      <LoginForm />
+      <ForgotPasswordForm />
 
       <p className="text-center text-sm text-neutral-500">
-        Pas encore de compte ?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:underline">
-          Créer un compte
+        <Link href="/login" className="font-medium text-indigo-600 hover:underline">
+          Retour à la connexion
         </Link>
       </p>
     </div>

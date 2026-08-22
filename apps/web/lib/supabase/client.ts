@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@fintrack/api-client";
-import { requireEnv } from "../env.js";
+import { requireEnv } from "../env";
 
 /**
  * Supabase client for use in Client Components.

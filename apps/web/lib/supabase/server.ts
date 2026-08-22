@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieMethodsServer, CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@fintrack/api-client";
-import { requireEnv } from "../env.js";
+import { requireEnv } from "../env";
 
 /**
  * Supabase client for use in Server Components, Route Handlers and Server Actions.

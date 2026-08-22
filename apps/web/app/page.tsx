@@ -1,7 +1,11 @@
-export default function HomePage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p className="text-sm text-neutral-500">FinTrack — Phase 0, socle en place.</p>
-    </main>
-  );
+import { redirect } from "next/navigation";
+import { createClient } from "../lib/supabase/server";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  redirect(user ? "/dashboard" : "/login");
 }
