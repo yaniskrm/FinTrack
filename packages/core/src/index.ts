@@ -4,6 +4,7 @@ export * from "./types/index.js";
 // Calculations
 export * from "./calculations/balance.js";
 export * from "./calculations/budget.js";
+export * from "./calculations/dashboard.js";
 export * from "./calculations/health-score.js";
 
 // Currency
