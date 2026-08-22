@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -8,19 +15,20 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-center text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-        Bienvenue
-      </h1>
-
-      <LoginForm />
-
-      <p className="text-center text-sm text-neutral-500">
-        Pas encore de compte ?{" "}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:underline">
-          Créer un compte
-        </Link>
-      </p>
-    </div>
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">Bienvenue</CardTitle>
+        <CardDescription>Connectez-vous à votre compte</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <LoginForm />
+        <p className="text-center text-sm text-muted-foreground">
+          Pas encore de compte ?{" "}
+          <Link href="/signup" className="font-medium text-primary hover:underline">
+            Créer un compte
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
   );
 }

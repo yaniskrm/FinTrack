@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { updatePasswordAction } from "../../../lib/auth/actions";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
@@ -34,48 +37,42 @@ export function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Nouveau mot de passe
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="password">Nouveau mot de passe</Label>
+        <Input
           id="password"
           type="password"
           autoComplete="new-password"
           required
           disabled={isPending}
           value={password}
-          onChange={(e) => { setPassword(e.target.value); }}
+          onChange={(e) => {
+            setPassword(e.target.value);
+          }}
           placeholder="8 caractères minimum"
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Confirmer le mot de passe
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+        <Input
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
           required
           disabled={isPending}
           value={confirmPassword}
-          onChange={(e) => { setConfirmPassword(e.target.value); }}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+          }}
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Mise à jour…" : "Mettre à jour le mot de passe"}
-      </button>
+      </Button>
     </form>
   );
 }

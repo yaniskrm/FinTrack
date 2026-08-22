@@ -11,20 +11,20 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-2xl space-y-8 px-6 py-16 text-sm leading-6 text-neutral-700 dark:text-neutral-300">
-      <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+    <main className="mx-auto max-w-2xl space-y-8 px-6 py-16 text-sm leading-6 text-muted-foreground">
+      <h1 className="text-2xl font-bold text-foreground">
         Politique de confidentialité
       </h1>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Responsable du traitement
         </h2>
         <p>[Nom de l&apos;entité responsable du traitement] — [adresse] — [contact].</p>
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Données collectées
         </h2>
         <p>
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Finalité et base légale
         </h2>
         <p>
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Durée de conservation
         </h2>
         <p>
@@ -54,7 +54,7 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Vos droits (RGPD)
         </h2>
         <p>
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+        <h2 className="text-base font-semibold text-foreground">
           Sécurité
         </h2>
         <p>

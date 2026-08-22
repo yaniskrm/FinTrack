@@ -4,6 +4,9 @@ import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { signUpAction } from "../../../lib/auth/actions";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 
 export function SignUpForm() {
   const [email, setEmail] = useState("");
@@ -51,7 +54,7 @@ export function SignUpForm() {
 
   if (emailSent) {
     return (
-      <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+      <p className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-foreground">
         Compte créé. Vérifiez votre email pour confirmer votre inscription.
       </p>
     );
@@ -59,82 +62,77 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Email
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
           id="email"
           type="email"
           autoComplete="email"
           required
           disabled={isPending}
           value={email}
-          onChange={(e) => { setEmail(e.target.value); }}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
         />
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Mot de passe
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="password">Mot de passe</Label>
+        <Input
           id="password"
           type="password"
           autoComplete="new-password"
           required
           disabled={isPending}
           value={password}
-          onChange={(e) => { setPassword(e.target.value); }}
+          onChange={(e) => {
+            setPassword(e.target.value);
+          }}
           placeholder="8 caractères minimum"
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="confirmPassword" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Confirmer le mot de passe
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+        <Input
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
           required
           disabled={isPending}
           value={confirmPassword}
-          onChange={(e) => { setConfirmPassword(e.target.value); }}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+          onChange={(e) => {
+            setConfirmPassword(e.target.value);
+          }}
         />
       </div>
 
-      <label className="flex items-start gap-2 text-sm text-neutral-600 dark:text-neutral-400">
+      <label className="flex items-start gap-2 text-sm text-muted-foreground">
         <input
           type="checkbox"
           required
           disabled={isPending}
           checked={consent}
-          onChange={(e) => { setConsent(e.target.checked); }}
-          className="mt-0.5"
+          onChange={(e) => {
+            setConsent(e.target.checked);
+          }}
+          className="mt-0.5 size-4 accent-primary"
         />
         <span>
           J&apos;accepte la{" "}
-          <Link href="/privacy" className="text-indigo-600 hover:underline">
+          <Link href="/privacy" className="text-primary hover:underline">
             politique de confidentialité
           </Link>
           .
         </span>
       </label>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Création…" : "Créer mon compte"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createClient } from "../../lib/supabase/server";
 import { IdleTimeout } from "../../components/IdleTimeout";
+import { AppShell } from "../../components/app-shell";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <IdleTimeout />
-      {children}
+      <AppShell email={user.email ?? ""}>{children}</AppShell>
     </>
   );
 }

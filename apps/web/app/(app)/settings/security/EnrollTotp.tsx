@@ -3,6 +3,9 @@
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { enrollTotpAction, verifyEnrollmentAction } from "../../../../lib/auth/mfa";
+import { Button } from "../../../../components/ui/button";
+import { Input } from "../../../../components/ui/input";
+import { Label } from "../../../../components/ui/label";
 
 interface Enrollment {
   factorId: string;
@@ -50,71 +53,62 @@ export function EnrollTotp() {
   if (!enrollment) {
     return (
       <div className="space-y-3">
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="button"
-          onClick={startEnrollment}
-          disabled={isPending}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-        >
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button type="button" onClick={startEnrollment} disabled={isPending}>
           {isPending ? "Chargement…" : "Activer la 2FA"}
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleVerify} className="space-y-4">
-      <ol className="list-decimal space-y-3 pl-5 text-sm text-neutral-600 dark:text-neutral-400">
+    <form onSubmit={handleVerify} className="space-y-5">
+      <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
         <li>Scannez ce QR code avec votre application d&apos;authentification.</li>
         <li>Saisissez le code à 6 chiffres généré pour confirmer.</li>
       </ol>
 
-      {/* Supabase returns an inline SVG data URI — a plain <img> is correct here
-          (next/image can't optimize data URIs and would need extra config). */}
-      <img
-        src={enrollment.qrCode}
-        alt="QR code de configuration 2FA"
-        className="h-44 w-44 rounded-lg bg-white p-2"
-      />
-
-      <details className="text-xs text-neutral-500">
-        <summary className="cursor-pointer">Saisir la clé manuellement</summary>
-        <code className="mt-1 block break-all rounded bg-neutral-100 p-2 dark:bg-neutral-900">
-          {enrollment.secret}
-        </code>
-      </details>
-
-      <div className="space-y-1">
-        <label htmlFor="code" className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-          Code de vérification
-        </label>
-        <input
-          id="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="\d{6}"
-          maxLength={6}
-          required
-          disabled={isPending}
-          value={code}
-          onChange={(e) => {
-            setCode(e.target.value.replace(/\D/g, ""));
-          }}
-          placeholder="123456"
-          className="w-40 rounded-lg border border-neutral-300 px-3 py-2 text-center text-lg tracking-widest outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {/* Supabase returns an inline SVG data URI — a plain <img> is correct here
+            (next/image can't optimize data URIs and would need extra config). */}
+        <img
+          src={enrollment.qrCode}
+          alt="QR code de configuration 2FA"
+          className="size-40 shrink-0 rounded-lg border bg-white p-2"
         />
+
+        <div className="min-w-0 space-y-4">
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer">Saisir la clé manuellement</summary>
+            <code className="mt-1 block rounded bg-muted p-2 break-all">{enrollment.secret}</code>
+          </details>
+
+          <div className="space-y-2">
+            <Label htmlFor="code">Code de vérification</Label>
+            <Input
+              id="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              maxLength={6}
+              required
+              disabled={isPending}
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\D/g, ""));
+              }}
+              placeholder="123456"
+              className="w-40 text-center text-lg tracking-[0.3em]"
+            />
+          </div>
+        </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending}>
         {isPending ? "Vérification…" : "Confirmer"}
-      </button>
+      </Button>
     </form>
   );
 }

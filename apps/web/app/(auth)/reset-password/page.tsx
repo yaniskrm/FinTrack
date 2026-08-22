@@ -1,4 +1,11 @@
 import type { Metadata } from "next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
@@ -7,12 +14,14 @@ export const metadata: Metadata = {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-center text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-        Choisissez un nouveau mot de passe
-      </h1>
-
-      <ResetPasswordForm />
-    </div>
+    <Card>
+      <CardHeader className="text-center">
+        <CardTitle className="text-xl">Nouveau mot de passe</CardTitle>
+        <CardDescription>Choisissez un mot de passe sécurisé</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResetPasswordForm />
+      </CardContent>
+    </Card>
   );
 }

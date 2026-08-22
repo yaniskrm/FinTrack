@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { verifyChallengeAction } from "../../lib/auth/mfa";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 
 export function MfaChallengeForm() {
   const [code, setCode] = useState("");
@@ -23,7 +25,7 @@ export function MfaChallengeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <input
+      <Input
         id="code"
         inputMode="numeric"
         autoComplete="one-time-code"
@@ -38,18 +40,14 @@ export function MfaChallengeForm() {
         }}
         placeholder="123456"
         aria-label="Code de vérification"
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-center text-xl tracking-[0.4em] outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+        className="h-12 text-center text-xl tracking-[0.5em]"
       />
 
-      {error && <p className="text-center text-sm text-red-600">{error}</p>}
+      {error && <p className="text-center text-sm text-destructive">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-      >
+      <Button type="submit" disabled={isPending} className="w-full">
         {isPending ? "Vérification…" : "Vérifier"}
-      </button>
+      </Button>
     </form>
   );
 }
