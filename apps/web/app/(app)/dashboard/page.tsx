@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "../../../lib/supabase/server";
 import { signOutAction } from "../../../lib/auth/actions";
 
@@ -13,6 +14,12 @@ export default async function DashboardPage() {
         Connecté en tant que <span className="font-medium">{user?.email}</span>
       </p>
       <p className="text-sm text-neutral-400">Dashboard — arrive en Phase 5.</p>
+      <Link
+        href="/settings/security"
+        className="text-sm font-medium text-indigo-600 hover:underline"
+      >
+        Paramètres de sécurité
+      </Link>
       <form action={signOutAction}>
         <button
           type="submit"
