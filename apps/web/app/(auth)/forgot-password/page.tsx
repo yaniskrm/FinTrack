@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
       <CardContent className="space-y-6">
         <ForgotPasswordForm />
         <p className="text-center text-sm text-muted-foreground">
-          <Link href="/login" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-medium text-foreground underline underline-offset-4 decoration-primary hover:decoration-2">
             Retour à la connexion
           </Link>
         </p>

@@ -121,7 +121,7 @@ export function SignUpForm() {
         />
         <span>
           J&apos;accepte la{" "}
-          <Link href="/privacy" className="text-primary hover:underline">
+          <Link href="/privacy" className="font-medium text-foreground underline underline-offset-4 decoration-primary hover:decoration-2">
             politique de confidentialité
           </Link>
           .

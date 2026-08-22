@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, LogOut, Menu, Shield, X } from "lucide-react";
 import { signOutAction } from "../lib/auth/actions";
 import { ThemeToggle } from "./theme-toggle";
+import { Wordmark } from "./logo";
 import { Button } from "./ui/button";
 import { cn } from "../lib/utils";
 
@@ -50,8 +51,8 @@ export function AppShell({ email, children }: { email: string; children: ReactNo
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-card md:flex">
-        <div className="flex h-14 items-center px-5 text-lg font-bold tracking-tight text-primary">
-          FinTrack
+        <div className="flex h-14 items-center px-5">
+          <Wordmark />
         </div>
         <nav className="flex-1 space-y-1 px-3 py-2">
           <NavLinks />
@@ -76,7 +77,7 @@ export function AppShell({ email, children }: { email: string; children: ReactNo
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
         <header className="flex h-14 items-center justify-between border-b bg-card px-4 md:hidden">
-          <span className="text-lg font-bold tracking-tight text-primary">FinTrack</span>
+          <Wordmark />
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <Button
