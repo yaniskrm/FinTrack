@@ -33,8 +33,8 @@ export async function createTransactionAction(values: TransactionFormValues): Pr
     return { ok: false, error: "Espace introuvable." };
   }
 
-  const amountEur = await freezeAmountEur(input.amount, input.currency);
-  if (amountEur === null) {
+  const frozen = await freezeAmountEur(input.amount, input.currency);
+  if (frozen === null) {
     return { ok: false, error: "Taux de change indisponibles." };
   }
 
@@ -45,7 +45,8 @@ export async function createTransactionAction(values: TransactionFormValues): Pr
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,
-      amount_eur: amountEur,
+      amount_eur: frozen.amountEur,
+      rate_approximate: frozen.approximate,
       type: input.type,
       label: input.label,
       note: input.note,
@@ -70,8 +71,8 @@ export async function updateTransactionAction(
   }
   const input = parsed.data;
 
-  const amountEur = await freezeAmountEur(input.amount, input.currency);
-  if (amountEur === null) {
+  const frozen = await freezeAmountEur(input.amount, input.currency);
+  if (frozen === null) {
     return { ok: false, error: "Taux de change indisponibles." };
   }
 
@@ -82,7 +83,8 @@ export async function updateTransactionAction(
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,
-      amount_eur: amountEur,
+      amount_eur: frozen.amountEur,
+      rate_approximate: frozen.approximate,
       type: input.type,
       label: input.label,
       note: input.note,
@@ -108,25 +110,42 @@ export async function deleteTransactionAction(id: string): Promise<DeleteResult>
   return { ok: true };
 }
 
+// A rate older than this is treated as stale → the frozen amount_eur is flagged
+// approximate. Rates refresh daily, so this tolerates one missed day.
+const RATE_STALE_MS = 48 * 60 * 60 * 1000;
+
+interface FrozenAmount {
+  amountEur: number;
+  approximate: boolean;
+}
+
 /**
- * Freezes amount_eur at entry/edit time using the current stored rates
- * (ADR-005). Never recomputed retroactively on later rate changes.
- * Returns null when non-EUR rates are unavailable.
+ * Freezes amount_eur at entry/edit time using the current stored rate
+ * (ADR-005). Never recomputed retroactively on later rate changes. Flags the
+ * result approximate when the stored rate is stale (rate API fallback).
+ * Returns null when the currency's rate is unavailable.
  */
-async function freezeAmountEur(amount: number, currency: Currency): Promise<number | null> {
+async function freezeAmountEur(amount: number, currency: Currency): Promise<FrozenAmount | null> {
   if (currency === "EUR") {
-    return round2(amount);
+    return { amountEur: round2(amount), approximate: false };
   }
 
   const supabase = await createClient();
-  const { data: rates, error } = await supabase
+  const { data: rate, error } = await supabase
     .from("exchange_rates")
-    .select("currency, rate_to_eur, updated_at");
+    .select("rate_to_eur, updated_at")
+    .eq("currency", currency)
+    .maybeSingle();
 
-  if (error || rates.length === 0) {
+  if (error || !rate) {
     return null;
   }
 
-  // DB stores currency as char(3), FK-constrained to valid codes.
-  return round2(convertToEur(amount, currency, rates as ExchangeRate[]));
+  const rates: ExchangeRate[] = [
+    { currency, rate_to_eur: rate.rate_to_eur, updated_at: rate.updated_at },
+  ];
+  return {
+    amountEur: round2(convertToEur(amount, currency, rates)),
+    approximate: Date.now() - new Date(rate.updated_at).getTime() > RATE_STALE_MS,
+  };
 }

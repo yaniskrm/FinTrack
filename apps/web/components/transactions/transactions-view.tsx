@@ -149,7 +149,15 @@ export function TransactionsView({
                     {formatCurrency(tx.amount, tx.currency as Currency)}
                   </p>
                   {tx.currency !== "EUR" && (
-                    <p className="text-xs text-muted-foreground tabular-nums">
+                    <p
+                      className="text-xs text-muted-foreground tabular-nums"
+                      title={
+                        tx.rate_approximate
+                          ? "Taux approximatif : le taux de change n'était pas à jour au moment de la saisie."
+                          : undefined
+                      }
+                    >
+                      {tx.rate_approximate ? "≈ " : ""}
                       {formatCurrency(tx.amount_eur, "EUR")}
                     </p>
                   )}

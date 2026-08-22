@@ -1,6 +1,13 @@
 // ─── Supported currencies ────────────────────────────────────────────────────
 
-export const SUPPORTED_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD", "DKK", "SEK"] as const;
+// 32 currencies: the ECB/Frankfurter set + MAD + AED. Rates are sourced from
+// open.er-api.com (free, keyless) by the exchange-rates Edge Function.
+export const SUPPORTED_CURRENCIES = [
+  "EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD",
+  "AED", "BRL", "CNY", "CZK", "DKK", "HKD", "HUF", "IDR", "ILS", "INR", "ISK",
+  "KRW", "MAD", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "SEK", "SGD",
+  "THB", "TRY", "ZAR",
+] as const;
 export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 
 // ─── Transaction ─────────────────────────────────────────────────────────────

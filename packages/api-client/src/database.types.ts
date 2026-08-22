@@ -329,6 +329,7 @@ export type Database = {
           id: string
           label: string
           note: string | null
+          rate_approximate: boolean
           recurring_rule_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
@@ -344,6 +345,7 @@ export type Database = {
           id?: string
           label: string
           note?: string | null
+          rate_approximate?: boolean
           recurring_rule_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
@@ -359,6 +361,7 @@ export type Database = {
           id?: string
           label?: string
           note?: string | null
+          rate_approximate?: boolean
           recurring_rule_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string

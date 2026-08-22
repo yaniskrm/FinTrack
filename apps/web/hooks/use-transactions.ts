@@ -36,6 +36,7 @@ function optimisticRow(values: TransactionFormValues): TransactionRow {
     label: values.label,
     note: values.note,
     date: values.date,
+    rate_approximate: false,
     recurring_rule_id: null,
     created_at: now,
     updated_at: now,
