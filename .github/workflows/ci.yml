@@ -32,6 +32,9 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @fintrack/core typecheck
 
+      - name: Typecheck web
+        run: pnpm --filter @fintrack/web typecheck
+
   # ─── Unit tests (packages/core) ────────────────────────────
   unit-tests:
     name: Unit tests
@@ -58,6 +61,29 @@ jobs:
           directory: packages/core/coverage
           flags: unit
         continue-on-error: true
+
+  # ─── Build (apps/web) ───────────────────────────────────────
+  build-web:
+    name: Build web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm --filter @fintrack/web build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
 
   # ─── Integration tests (Supabase local) ────────────────────
   # Activated in Phase 3+ when integration tests exist.
