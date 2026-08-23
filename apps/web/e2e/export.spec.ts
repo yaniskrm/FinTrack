@@ -10,7 +10,7 @@ test.describe("data export", () => {
     await page.keyboard.press("n");
     await page.getByLabel("Montant").fill("15");
     await page.getByLabel("Libellé").fill("Café E2E");
-    await page.getByRole("button", { name: "Ajouter" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Ajouter" }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
 
     await page.goto("/settings/export");
