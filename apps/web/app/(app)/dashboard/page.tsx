@@ -10,12 +10,13 @@ import { BalanceSparkline } from "../../../components/dashboard/balance-sparklin
 import { CategoryDonut } from "../../../components/dashboard/category-donut";
 import { MonthlyBars } from "../../../components/dashboard/monthly-bars";
 import { UpcomingRecurring } from "../../../components/dashboard/upcoming-recurring";
+import { NetWorthTile } from "../../../components/dashboard/net-worth-tile";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: transactions }, { data: categories }, { data: upcoming }] = await Promise.all([
+  const [{ data: transactions }, { data: categories }, { data: upcoming }, { data: investments }] = await Promise.all([
     supabase
       .from("transactions")
       .select("*")
@@ -28,6 +29,7 @@ export default async function DashboardPage() {
       .or(`end_date.is.null,end_date.gte.${today}`)
       .order("next_occurrence", { ascending: true })
       .limit(5),
+    supabase.from("investments").select("*").order("created_at", { ascending: true }),
   ]);
 
   const data = buildDashboard(transactions ?? [], categories ?? []);
@@ -50,7 +52,10 @@ export default async function DashboardPage() {
               <Link href="/transactions">Ajouter une transaction</Link>
             </Button>
           </Card>
-          <UpcomingRecurring rules={upcoming ?? []} categories={categories ?? []} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <UpcomingRecurring rules={upcoming ?? []} categories={categories ?? []} />
+            <NetWorthTile investments={investments ?? []} />
+          </div>
         </>
       ) : (
         <>
@@ -91,6 +96,7 @@ export default async function DashboardPage() {
             </Card>
 
             <UpcomingRecurring rules={upcoming ?? []} categories={categories ?? []} />
+            <NetWorthTile investments={investments ?? []} />
           </div>
         </>
       )}

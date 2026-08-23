@@ -170,37 +170,97 @@ export type Database = {
           },
         ]
       }
+      investment_valuations: {
+        Row: {
+          created_at: string
+          id: string
+          investment_id: string
+          price_eur: number
+          recorded_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          investment_id: string
+          price_eur: number
+          recorded_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          investment_id?: string
+          price_eur?: number
+          recorded_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investment_valuations_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "investment_valuations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       investments: {
         Row: {
+          asset_type: Database["public"]["Enums"]["investment_type"]
+          broker: string | null
           buy_price_eur: number
+          closed_at: string | null
           created_at: string
           currency: string
           current_price_eur: number
           id: string
           name: string
+          notes: string | null
+          opened_at: string | null
           quantity: number
+          sale_price_eur: number | null
           ticker: string | null
           workspace_id: string
         }
         Insert: {
+          asset_type?: Database["public"]["Enums"]["investment_type"]
+          broker?: string | null
           buy_price_eur: number
+          closed_at?: string | null
           created_at?: string
           currency?: string
           current_price_eur: number
           id?: string
           name: string
+          notes?: string | null
+          opened_at?: string | null
           quantity: number
+          sale_price_eur?: number | null
           ticker?: string | null
           workspace_id: string
         }
         Update: {
+          asset_type?: Database["public"]["Enums"]["investment_type"]
+          broker?: string | null
           buy_price_eur?: number
+          closed_at?: string | null
           created_at?: string
           currency?: string
           current_price_eur?: number
           id?: string
           name?: string
+          notes?: string | null
+          opened_at?: string | null
           quantity?: number
+          sale_price_eur?: number | null
           ticker?: string | null
           workspace_id?: string
         }
@@ -463,6 +523,7 @@ export type Database = {
     }
     Functions: {
       enforce_aal2_when_enrolled: { Args: never; Returns: boolean }
+      generate_due_recurring_transactions: { Args: never; Returns: number }
       is_workspace_member: {
         Args: { p_workspace_id: string }
         Returns: boolean
@@ -476,6 +537,7 @@ export type Database = {
     }
     Enums: {
       budget_period: "monthly" | "yearly"
+      investment_type: "etf" | "stock" | "scpi" | "savings" | "crypto" | "other"
       member_role: "owner" | "member"
       recurring_frequency: "daily" | "weekly" | "monthly" | "yearly"
       transaction_type: "expense" | "income" | "transfer"
@@ -610,6 +672,7 @@ export const Constants = {
   public: {
     Enums: {
       budget_period: ["monthly", "yearly"],
+      investment_type: ["etf", "stock", "scpi", "savings", "crypto", "other"],
       member_role: ["owner", "member"],
       recurring_frequency: ["daily", "weekly", "monthly", "yearly"],
       transaction_type: ["expense", "income", "transfer"],
