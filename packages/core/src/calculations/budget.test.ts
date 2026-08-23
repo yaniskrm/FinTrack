@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateBudgetStatuses } from "./budget.js";
+import { calculateBudgetStatuses, suggestBudgetAmount } from "./budget.js";
 import type { Budget, Transaction } from "../types/index.js";
 
 const makeBudget = (overrides: Partial<Budget> = {}): Budget => ({
@@ -80,5 +80,39 @@ describe("calculateBudgetStatuses", () => {
     const budget = makeBudget({ amount_eur: 0 });
     const [status] = calculateBudgetStatuses([budget], [makeTx({ amount_eur: 50 })]);
     expect(status?.percentage).toBe(0);
+  });
+});
+
+describe("suggestBudgetAmount", () => {
+  const reference = new Date("2026-04-15T00:00:00Z"); // -> window: Jan 1 to Apr 1
+
+  it("averages the 3 prior calendar months of expenses for the category", () => {
+    const txs = [
+      makeTx({ category_id: "cat1", amount_eur: 100, date: "2026-01-10" }),
+      makeTx({ category_id: "cat1", amount_eur: 200, date: "2026-02-10" }),
+      makeTx({ category_id: "cat1", amount_eur: 300, date: "2026-03-10" }),
+    ];
+    expect(suggestBudgetAmount("cat1", txs, reference)).toBe(200);
+  });
+
+  it("excludes the current (in-progress) month", () => {
+    const txs = [
+      makeTx({ category_id: "cat1", amount_eur: 300, date: "2026-03-10" }),
+      makeTx({ category_id: "cat1", amount_eur: 9999, date: "2026-04-10" }), // current month
+    ];
+    expect(suggestBudgetAmount("cat1", txs, reference)).toBe(100);
+  });
+
+  it("excludes other categories and income", () => {
+    const txs = [
+      makeTx({ category_id: "cat1", amount_eur: 150, date: "2026-03-01" }),
+      makeTx({ category_id: "cat2", amount_eur: 500, date: "2026-03-01" }),
+      makeTx({ category_id: "cat1", type: "income", amount_eur: 1000, date: "2026-03-01" }),
+    ];
+    expect(suggestBudgetAmount("cat1", txs, reference)).toBe(50);
+  });
+
+  it("returns 0 with no spending history", () => {
+    expect(suggestBudgetAmount("cat1", [], reference)).toBe(0);
   });
 });

@@ -35,3 +35,35 @@ export function calculateBudgetStatuses(
     };
   });
 }
+
+/**
+ * Suggests a monthly budget for a category: the average of its actual expense
+ * spend over the 3 calendar months strictly before `referenceDate` (default:
+ * now). Returns 0 when there's no spending history to base a suggestion on.
+ */
+export function suggestBudgetAmount(
+  categoryId: string,
+  transactions: Transaction[],
+  referenceDate: Date = new Date(),
+): number {
+  const startOfCurrentMonth = new Date(
+    Date.UTC(referenceDate.getUTCFullYear(), referenceDate.getUTCMonth(), 1),
+  );
+  const windowStart = new Date(startOfCurrentMonth);
+  windowStart.setUTCMonth(windowStart.getUTCMonth() - 3);
+
+  const startStr = windowStart.toISOString().slice(0, 10);
+  const endStr = startOfCurrentMonth.toISOString().slice(0, 10);
+
+  const total = transactions
+    .filter(
+      (tx) =>
+        tx.category_id === categoryId &&
+        tx.type === "expense" &&
+        tx.date >= startStr &&
+        tx.date < endStr,
+    )
+    .reduce((sum, tx) => sum + tx.amount_eur, 0);
+
+  return Math.round((total / 3) * 100) / 100;
+}
