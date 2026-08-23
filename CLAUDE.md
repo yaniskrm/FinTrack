@@ -8,9 +8,9 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phases 0→5 livrées (web). Prochaine : Phase 6 — récurrences.**
+**Phase courante : Phases 0→6 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 7 — budget + objectifs.**
 
-> ⚠️ Tout le travail web vit sur des **branches `feat/web-*` empilées, non mergées dans `main`** (`main` est resté à l'état mobile-first). Voir *Workflow Git*.
+> `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
 ---
 
@@ -46,34 +46,35 @@ fintrack/
 │   ├── web/                      ← Next.js 15 — LA cible v1
 │   │   ├── app/
 │   │   │   ├── (auth)/           ← login, signup, forgot-password, reset-password
-│   │   │   ├── (app)/            ← dashboard, transactions, settings/security (protégé)
+│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, settings/security (protégé)
 │   │   │   ├── auth/callback/    ← échange du code PKCE (email + reset)
 │   │   │   ├── mfa/              ← step-up 2FA au login
 │   │   │   ├── privacy/          ← RGPD (template, à faire relire juridiquement)
 │   │   │   └── icon.svg          ← favicon (logo or)
 │   │   ├── components/
 │   │   │   ├── ui/               ← shadcn primitives (button, input, dialog, select, command, popover, sonner…)
-│   │   │   ├── dashboard/        ← charts Recharts + stat tiles
+│   │   │   ├── dashboard/        ← charts Recharts + stat tiles + upcoming-recurring
 │   │   │   ├── transactions/     ← dialog de saisie, liste, combobox devise
+│   │   │   ├── recurring/        ← dialog + liste des abonnements
 │   │   │   ├── app-shell, logo, theme-provider, theme-toggle, providers, IdleTimeout
-│   │   ├── hooks/                ← use-transactions (optimiste)
-│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions, mfa), transactions, dashboard, currencies, env, utils
+│   │   ├── hooks/                ← use-transactions, use-recurring (optimistes)
+│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions, mfa), transactions, recurring, dashboard, currencies, env, utils
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 90 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 97 tests Vitest.
 │   │   └── src/
 │   │       ├── calculations/     ← balance, budget, dashboard (donut/sparkline), health-score
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
-│   │       ├── validators/       ← Zod (transaction-schema) + impératifs (auth, mfa, transaction, recurring)
+│   │       ├── validators/       ← Zod (transaction-schema, recurring-schema) + impératifs (auth, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
 ├── supabase/
-│   ├── migrations/               ← Schéma versionné (8 migrations)
+│   ├── migrations/               ← Schéma versionné (9 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
-│   │   ├── send-notifications/   ← (stub — Phase 6, Web Push récurrences)
+│   │   ├── send-notifications/   ← (stub — Web Push récurrences, reste de la Phase 6)
 │   │   └── export-pdf/           ← (stub — Phase 9)
 │   └── seed.sql
 └── docs/adr/
@@ -89,12 +90,12 @@ workspace_members   ← workspace_id + user_id + role + accepted_at
 profiles            ← Extension auth.users (default_currency, locale…)
 categories          ← Personnalisables par workspace (14 par défaut, dont Sport)
 transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate)
-recurring_rules     ← Règles de récurrence (≠ transactions) — table prête, feature Phase 6
+recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅
 exchange_rates      ← Taux globaux (165 devises), écrits par l'Edge Function uniquement
 budgets             ← Enveloppes par catégorie (Phase 7)
 investments         ← Positions de portefeuille (Phase 8)
 goals               ← Objectifs d'épargne (Phase 7)
-push_subscriptions  ← (Phase 6)
+push_subscriptions  ← (reste de la Phase 6 — Web Push)
 ```
 
 **Point critique** : toutes les tables métier ont un `workspace_id`, jamais un `user_id` direct (anticipe le multi-utilisateurs). Workspace + profil + catégories par défaut créés automatiquement au signup via triggers PostgreSQL.
@@ -106,7 +107,9 @@ workspace_id IN (
   WHERE user_id = auth.uid() AND accepted_at IS NOT NULL
 )
 ```
-**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur les tables financières — un user ayant un facteur TOTP vérifié ne peut lire/écrire ses données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql`.
+**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **6 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `goals`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql`.
+
+⚠️ **Règle à ne pas oublier pour Phase 7/8** : `budgets`, `investments`, `goals` ont *déjà* cette policy AAL2 en base. Toute nouvelle page qui lit ces tables **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug réel trouvé et corrigé en Phase 6 pour `/transactions` et `/subscriptions`).
 
 ---
 
@@ -134,9 +137,15 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **90 tests actuellement, tous verts.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **97 tests actuellement, tous verts.**
 - Coverage cible 80 % sur `packages/core`.
-- `apps/web` : pas encore de tests (E2E Playwright prévu Phase 9).
+- `apps/web` : pas encore de tests (E2E Playwright prévu Phase 9). Vérification actuelle = API REST directe (curl/node) contre Supabase local + tests de garde de routes.
+
+### Récurrences (Phase 6)
+- Une `recurring_rule` **n'est pas** une transaction — elle en **génère**. Fonction SQL pure `generate_due_recurring_transactions()` (`supabase/functions` non, c'est une fonction PostgreSQL dans une migration), appelée quotidiennement à 05h00 UTC par `pg_cron` (appel direct, pas de `pg_net` car interne à la DB).
+- Rattrape **toutes** les échéances en retard depuis `next_occurrence` (boucle `while`), gèle `amount_eur` au taux courant (+ flag `rate_approximate`), lie la transaction via `recurring_rule_id`, avance le curseur `next_occurrence`. **Idempotente** (vérifié : re-run = 0 nouvelle transaction).
+- Éditer une règle ne touche jamais `start_date`/`next_occurrence` (curseur système, jamais re-backfillé par une édition).
+- Supprimer une règle **garde** les transactions déjà générées (`recurring_rule_id` → `ON DELETE SET NULL`).
 
 ---
 
@@ -195,9 +204,20 @@ pnpm dlx supabase@latest gen types typescript --local > packages/api-client/src/
 
 ## Workflow Git
 
-`main` = prod (protégée, PR obligatoires). Tout le web est sur des branches `feat/web-*` **empilées** (`phase-0` → `phase-1` → … → `phase-5` → `enhancements`), **aucune encore mergée** dans `main`. Ouvrir les PR dans l'ordre. Le CLI `gh` n'est pas dispo dans l'env → PR via lien navigateur.
+**Une branche par phase, mergée dans `main` en fin de phase.** `main` contient tout le travail livré (Phases 0→6). Processus à chaque fin de phase :
+1. `git checkout -b feat/web-phase-N main`, développer, committer.
+2. **Avant de merger**, vérifier le CI en conditions réelles en local (voir *Pièges connus* — sinon le decalage core/dist fait planter le CI) :
+   ```bash
+   rm -rf packages/core/dist apps/web/.next
+   pnpm turbo lint typecheck --filter=@fintrack/core --filter=@fintrack/web
+   NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key pnpm turbo build --filter=@fintrack/web
+   pnpm --filter @fintrack/core test:coverage
+   ```
+3. `git checkout main && git merge --no-ff feat/web-phase-N && git push origin main`.
+4. **Mettre à jour ce `CLAUDE.md`** (roadmap, ADR si décision d'archi, pièges connus) — À FAIRE SYSTÉMATIQUEMENT à chaque fin de phase, ne pas attendre qu'on le demande.
+5. Vérifier le run CI sur GitHub Actions (le CLI `gh` n'est pas dispo dans l'env → vérification manuelle par l'utilisateur, ou lien de PR à ouvrir au navigateur si besoin).
 
-Commits : `type(scope): description`. **Jamais de push direct sur `main`.**
+Commits : `type(scope): description`. **Jamais de push direct sur `main` sans être passé par une branche + vérif CI locale d'abord.**
 
 ---
 
@@ -206,7 +226,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main`.**
 1. **Dashboard** — solde, sparkline, donut catégories, histogramme mensuel, score de santé ✅
 2. **Saisie rapide** — Dialog + raccourci `N`, < 5 s ✅
 3. **Transactions** — liste, édition/duplication/suppression, mutations optimistes ✅
-4. **Abonnements / Récurrences** — Phase 6 (table prête, génération auto via `pg_cron`)
+4. **Abonnements / Récurrences** — CRUD + génération auto via `pg_cron`, dashboard "prochains prélèvements" ✅ (Web Push notifications restant)
 5. **Budget** — Phase 7
 6. **Investissements** — Phase 8
 7. **Objectifs** — Phase 7
@@ -225,8 +245,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main`.**
 - **Phase 3** ✅ Transactions (Zod, formulaire, liste, TanStack Query optimiste)
 - **Phase 4** ✅ Multi-devises (Edge Function open.er-api, 165 devises, flag approximatif)
 - **Phase 5** ✅ Dashboard + visualisations Recharts
-- **Phase 6** ← *prochaine* : Récurrences (génération auto pg_cron) + PWA + Web Push
-- **Phase 7** : Budget + objectifs
+- **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *reste* : PWA + Web Push
+- **Phase 7** ← *prochaine* : Budget + objectifs
 - **Phase 8** : Investissements
 - **Phase 9** : Export + **Réglages (compte : email/mdp)** + accessibilité + E2E
 
@@ -247,6 +267,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main`.**
 - **ADR-010** *(session)* : shadcn/ui vit dans `apps/web/components/ui`, PAS dans `packages/ui` (qui reste tokens React Native pour le mobile v2). Design system web et mobile disjoints, assumé.
 - **ADR-011** *(session)* : taux de change via **open.er-api.com** (gratuit, sans clé, MAD/AED inclus) plutôt que Frankfurter (ECB, pas de MAD/AED) ou un fournisseur à clé. Cron quotidien.
 - **ADR-012** *(session)* : support de **165 devises** (étend le « 9 » initial) grâce aux métadonnées auto-générées — motivé par les besoins voyageurs.
+- **ADR-013** *(Phase 6)* : génération des transactions récurrentes en **fonction PostgreSQL pure + `pg_cron`** (pas d'Edge Function ni `pg_net`) — la logique ne dépend d'aucune API externe, donc autant rester 100 % en base : plus simple, pas de secret Vault à gérer, plus robuste (tourne même si les Edge Functions sont down).
+- **ADR-014** *(Phase 6)* : workflow Git formalisé — une branche par phase, merge `--no-ff` dans `main` en fin de phase après vérification CI locale (voir *Workflow Git*). `CLAUDE.md` mis à jour à chaque fin de phase, systématiquement.
 
 ---
 
@@ -255,11 +277,14 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main`.**
 - **`@supabase/ssr` doit être aligné avec `supabase-js`.** ssr 0.6 ne transmet pas le générique `Database` à supabase-js ≥ 2.100 → toutes les tables typées `never`, `.insert()` refusé. Fix : ssr `^0.12` + supabase-js `^2.112`, puis régénérer `database.types.ts` avec un CLI récent (`pnpm dlx supabase@latest gen types`).
 - **Ne jamais lancer `next build` pendant que `pnpm dev` tourne** (même dossier `.next`) → assets corrompus. Stopper le dev d'abord.
 - **`git reset --hard` détruit les modifs non commitées** (c'est ainsi qu'une version antérieure de ce fichier a été perdue). Committer avant tout reset.
+- **Le repo était dans `~/Desktop`, synchronisé iCloud** → créait périodiquement des copies de conflit `« fichier 2.ext »` (voire des `.sql` dupliqués dans `supabase/migrations/`, dangereux pour `db reset`). **Résolu le 23/08/2026** : synchro iCloud désactivée pour ce dossier. Si des fichiers `« … 2.* »` réapparaissent, c'est le signe que la synchro a été réactivée par erreur.
 - **`database.types.ts` est généré** → ignoré par ESLint (`eslint.config.mjs`). Ne pas l'éditer à la main.
-- **Lint mobile cassé** (45 erreurs pré-existantes) → scoper les commandes turbo sur `@fintrack/core` + `@fintrack/web`. La CI ne lance pas le lint.
+- **Lint mobile cassé** (45 erreurs pré-existantes) → scoper les commandes turbo sur `@fintrack/core` + `@fintrack/web`.
 - **Drapeaux emoji** : rendus sur macOS/iOS/Android, remplacés par le code pays sur Windows (le code devise reste affiché → pas de perte d'info).
+- **Le CI doit builder `@fintrack/core` avant de typechecker/builder le web** (`main`/`types` de core pointent vers `./dist`, absent tant que non buildé). Le CI utilise désormais **Turbo** (`pnpm turbo lint typecheck` / `pnpm turbo build --filter=@fintrack/web`), dont les tâches ont `dependsOn: ["^build"]` → core buildé en premier automatiquement. Ne JAMAIS revenir à `pnpm --filter @fintrack/web typecheck` en direct dans le CI (ça a cassé le pipeline une fois, cf. `.github/workflows/ci.yml`). Le **lint est activé** dans le CI depuis ce fix (scopé core+web).
+- **Gate AAL2 du middleware** : toute page qui lit une table financière (voir liste plus haut) doit être ajoutée à `AUTH_REQUIRED_PREFIXES` **et** `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`. Oublié pour `/transactions` et `/subscriptions` jusqu'à ce que ce soit trouvé et corrigé en Phase 6 — vérifier systématiquement pour Phase 7/8 (`/budget`, `/investments`, `/goals`).
 
 ---
 
-*Source de vérité pour Claude Code. À mettre à jour à chaque décision architecturale majeure.*
+*Source de vérité pour Claude Code. **À mettre à jour systématiquement à la fin de chaque phase** (pas seulement sur décision d'archi majeure) : roadmap, structure, compteurs (tests/migrations), nouveaux ADR, nouveaux pièges connus. C'est une étape du workflow de fin de phase (voir *Workflow Git*), pas une tâche à part.*
 *Documentation complète → https://www.notion.so/32127748ca0281ad968bebf687fb73e1*
