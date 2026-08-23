@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { signUpAndLogIn } from "./helpers";
+import { logToastIfPresent, signUpAndLogIn } from "./helpers";
 
 test.describe("data export", () => {
   test.beforeEach(async ({ page }) => {
@@ -11,6 +11,7 @@ test.describe("data export", () => {
     await page.getByLabel("Montant").fill("15");
     await page.getByLabel("Libellé").fill("Café E2E");
     await page.getByRole("dialog").getByRole("button", { name: "Ajouter" }).click();
+    await logToastIfPresent(page);
     await expect(page.getByRole("dialog")).toBeHidden();
 
     await page.goto("/settings/export");

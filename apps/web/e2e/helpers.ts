@@ -17,6 +17,15 @@ export async function fillSignUpForm(page: Page, email: string): Promise<void> {
   await page.getByRole("button", { name: "Créer mon compte" }).click();
 }
 
+/** CI-only diagnostic: prints any visible sonner toast text to the test log. */
+export async function logToastIfPresent(page: Page): Promise<void> {
+  if (!process.env.CI) return;
+  const texts = await page.locator("[data-sonner-toast]").allTextContents().catch(() => []);
+  if (texts.length > 0) {
+    console.log("[e2e] toast:", JSON.stringify(texts));
+  }
+}
+
 /** Fills and submits the login form. Leaves the caller to assert the resulting redirect. */
 export async function fillLoginForm(page: Page, email: string): Promise<void> {
   await page.goto("/login");
@@ -36,6 +45,14 @@ export async function fillLoginForm(page: Page, email: string): Promise<void> {
  * test that signs out first.
  */
 export async function signUpAndLogIn(page: Page, email: string = randomEmail()): Promise<string> {
+  if (process.env.CI) {
+    page.on("response", (res) => {
+      if (res.status() >= 400) {
+        console.log(`[e2e] ${String(res.status())} ${res.request().method()} ${res.url()}`);
+      }
+    });
+  }
+
   await fillSignUpForm(page, email);
   await expect(page.getByText("Compte créé.")).toBeVisible();
 

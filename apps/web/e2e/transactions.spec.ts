@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signUpAndLogIn } from "./helpers";
+import { logToastIfPresent, signUpAndLogIn } from "./helpers";
 
 test("a user can create a transaction via the quick-entry dialog and see it in the list", async ({ page }) => {
   await signUpAndLogIn(page);
@@ -11,6 +11,7 @@ test("a user can create a transaction via the quick-entry dialog and see it in t
   await page.getByLabel("Montant").fill("42.50");
   await page.getByLabel("Libellé").fill("Courses E2E");
   await page.getByRole("dialog").getByRole("button", { name: "Ajouter" }).click();
+  await logToastIfPresent(page);
 
   await expect(page.getByRole("dialog")).toBeHidden();
   await expect(page.getByText("Courses E2E")).toBeVisible();
