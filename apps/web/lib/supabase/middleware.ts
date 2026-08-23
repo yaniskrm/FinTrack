@@ -5,11 +5,15 @@ import type { NextRequest } from "next/server";
 import { requireEnv } from "../env";
 
 // Routes that require an authenticated session.
-const AUTH_REQUIRED_PREFIXES = ["/dashboard", "/settings", "/mfa"];
+const AUTH_REQUIRED_PREFIXES = ["/dashboard", "/settings", "/mfa", "/transactions", "/subscriptions"];
 // Routes that additionally require a fully stepped-up (AAL2) session when the
 // user has 2FA enabled. `/mfa` is deliberately excluded — it's where step-up
-// happens, so it must stay reachable at AAL1.
-const AAL2_GATED_PREFIXES = ["/dashboard", "/settings"];
+// happens, so it must stay reachable at AAL1. These are exactly the routes
+// backed by tables with a RESTRICTIVE aal2 RLS policy (see
+// 20260822000000_mfa_aal2_rls.sql) — without this gate, an AAL1 user with 2FA
+// enabled would land on the page and silently see empty data instead of being
+// routed through step-up.
+const AAL2_GATED_PREFIXES = ["/dashboard", "/settings", "/transactions", "/subscriptions"];
 // Routes that only make sense when logged out.
 const LOGGED_OUT_ONLY_PREFIXES = ["/login", "/signup", "/forgot-password"];
 

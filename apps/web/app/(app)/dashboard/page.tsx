@@ -9,17 +9,25 @@ import { HealthTile } from "../../../components/dashboard/health-tile";
 import { BalanceSparkline } from "../../../components/dashboard/balance-sparkline";
 import { CategoryDonut } from "../../../components/dashboard/category-donut";
 import { MonthlyBars } from "../../../components/dashboard/monthly-bars";
+import { UpcomingRecurring } from "../../../components/dashboard/upcoming-recurring";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: transactions }, { data: categories }] = await Promise.all([
+  const [{ data: transactions }, { data: categories }, { data: upcoming }] = await Promise.all([
     supabase
       .from("transactions")
       .select("*")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase.from("categories").select("*").order("name"),
+    supabase
+      .from("recurring_rules")
+      .select("*")
+      .or(`end_date.is.null,end_date.gte.${today}`)
+      .order("next_occurrence", { ascending: true })
+      .limit(5),
   ]);
 
   const data = buildDashboard(transactions ?? [], categories ?? []);
@@ -33,14 +41,17 @@ export default async function DashboardPage() {
       </div>
 
       {!hasData ? (
-        <Card className="items-center gap-3 py-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            Ajoutez des transactions pour voir vos statistiques ici.
-          </p>
-          <Button asChild>
-            <Link href="/transactions">Ajouter une transaction</Link>
-          </Button>
-        </Card>
+        <>
+          <Card className="items-center gap-3 py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              Ajoutez des transactions pour voir vos statistiques ici.
+            </p>
+            <Button asChild>
+              <Link href="/transactions">Ajouter une transaction</Link>
+            </Button>
+          </Card>
+          <UpcomingRecurring rules={upcoming ?? []} categories={categories ?? []} />
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -78,6 +89,8 @@ export default async function DashboardPage() {
                 <MonthlyBars data={data.monthly} />
               </CardContent>
             </Card>
+
+            <UpcomingRecurring rules={upcoming ?? []} categories={categories ?? []} />
           </div>
         </>
       )}

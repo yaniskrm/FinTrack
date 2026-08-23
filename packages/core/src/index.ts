@@ -18,3 +18,4 @@ export * from "./validators/transaction.js";
 export * from "./validators/transaction-schema.js";
 export { validateRecurringRule, getNextOccurrence } from "./validators/recurring.js";
 export type { RecurringRuleInput } from "./validators/recurring.js";
+export * from "./validators/recurring-schema.js";
