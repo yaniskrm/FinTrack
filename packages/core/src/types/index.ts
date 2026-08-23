@@ -1,6 +1,27 @@
 // ─── Supported currencies ────────────────────────────────────────────────────
 
-export const SUPPORTED_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD", "DKK", "SEK"] as const;
+// All currencies quoted by open.er-api.com (the exchange-rates Edge Function
+// source), minus XDR (IMF SDR, not spendable). Majors first, then alphabetical.
+// Display flag + name are derived automatically (see apps/web/lib/currencies).
+export const SUPPORTED_CURRENCIES = [
+  "EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD", "AED", "AFN", "ALL",
+  "AMD", "ANG", "AOA", "ARS", "AWG", "AZN", "BAM", "BBD", "BDT", "BGN",
+  "BHD", "BIF", "BMD", "BND", "BOB", "BRL", "BSD", "BTN", "BWP", "BYN",
+  "BZD", "CDF", "CLF", "CLP", "CNH", "CNY", "COP", "CRC", "CUP", "CVE",
+  "CZK", "DJF", "DKK", "DOP", "DZD", "EGP", "ERN", "ETB", "FJD", "FKP",
+  "FOK", "GEL", "GGP", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD", "HKD",
+  "HNL", "HRK", "HTG", "HUF", "IDR", "ILS", "IMP", "INR", "IQD", "IRR",
+  "ISK", "JEP", "JMD", "JOD", "KES", "KGS", "KHR", "KID", "KMF", "KRW",
+  "KWD", "KYD", "KZT", "LAK", "LBP", "LKR", "LRD", "LSL", "LYD", "MAD",
+  "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK",
+  "MXN", "MYR", "MZN", "NAD", "NGN", "NIO", "NOK", "NPR", "NZD", "OMR",
+  "PAB", "PEN", "PGK", "PHP", "PKR", "PLN", "PYG", "QAR", "RON", "RSD",
+  "RUB", "RWF", "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLE",
+  "SLL", "SOS", "SRD", "SSP", "STN", "SYP", "SZL", "THB", "TJS", "TMT",
+  "TND", "TOP", "TRY", "TTD", "TVD", "TWD", "TZS", "UAH", "UGX", "UYU",
+  "UZS", "VES", "VND", "VUV", "WST", "XAF", "XCD", "XCG", "XOF", "XPF",
+  "YER", "ZAR", "ZMW", "ZWG", "ZWL",
+] as const;
 export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 
 // ─── Transaction ─────────────────────────────────────────────────────────────

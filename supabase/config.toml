@@ -51,6 +51,16 @@ enable_confirmations = false
 [auth.sms]
 enable_signup = false
 
+# Enable TOTP two-factor authentication (required for the /settings/security
+# enrollment + /mfa step-up flow). On hosted Supabase this lives in the
+# dashboard: Authentication → Multi-Factor Authentication.
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"
