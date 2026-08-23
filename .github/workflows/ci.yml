@@ -29,11 +29,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm --filter @fintrack/core typecheck
-
-      - name: Typecheck web
-        run: pnpm --filter @fintrack/web typecheck
+      # Turbo builds @fintrack/core (dependsOn "^build") before typechecking the
+      # web app — otherwise its dist/ is missing and web sees `Cannot find module
+      # '@fintrack/core'`. Scoped to core + web (mobile lint is pre-existing debt).
+      - name: Lint & Typecheck
+        run: pnpm turbo lint typecheck --filter=@fintrack/core --filter=@fintrack/web
 
   # ─── Unit tests (packages/core) ────────────────────────────
   unit-tests:
@@ -79,8 +79,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Turbo builds @fintrack/core first (dependsOn "^build"), then the web app.
       - name: Build
-        run: pnpm --filter @fintrack/web build
+        run: pnpm turbo build --filter=@fintrack/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
