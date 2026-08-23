@@ -131,9 +131,18 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @fintrack/web exec playwright install --with-deps chromium webkit
 
+      # Pinned, not "latest": CI was hitting "Espace introuvable." (no
+      # workspace found) on the very first request after signup — the
+      # on_auth_user_created trigger (AFTER INSERT ON auth.users, creates the
+      # workspace/workspace_member synchronously in the same transaction)
+      # appears not to have run yet by the time the client's next request
+      # lands, only reproducing against the CLI's newer default stack, never
+      # locally against 2.75.0 (extensively retested, including from-scratch
+      # `db reset`s). Pin to the version this workflow is actually verified
+      # against; bump deliberately, not implicitly on every run.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.75.0
 
       - name: Start Supabase local (applies migrations + seed)
         run: supabase start
