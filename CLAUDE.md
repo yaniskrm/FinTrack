@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phases 0→7 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 8 — investissements.**
+**Phase courante : Phases 0→8 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 9 — export + réglages compte + accessibilité + E2E.**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -64,16 +64,16 @@ fintrack/
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 123 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 151 tests Vitest.
 │   │   └── src/
-│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score
+│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique)
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
-│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal-schema) + impératifs (auth, mfa, transaction, recurring)
+│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment-schema) + impératifs (auth, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
 ├── supabase/
-│   ├── migrations/               ← Schéma versionné (9 migrations)
+│   ├── migrations/               ← Schéma versionné (10 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
 │   │   ├── send-notifications/   ← (stub — Web Push récurrences, reste de la Phase 6)
@@ -95,23 +95,24 @@ transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate)
 recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅
 exchange_rates      ← Taux globaux (165 devises), écrits par l'Edge Function uniquement
 budgets             ← Enveloppes par catégorie, alertes 80%/100% ✅
-investments         ← Positions de portefeuille (Phase 8)
+investments         ← Positions de portefeuille (P&L latent/réalisé, allocation) ✅
+investment_valuations ← Historique de valorisation par position (courbe temporelle) ✅
 goals               ← Objectifs d'épargne, contribution mensuelle calculée ✅
 push_subscriptions  ← (reste de la Phase 6 — Web Push)
 ```
 
 **Point critique** : toutes les tables métier ont un `workspace_id`, jamais un `user_id` direct (anticipe le multi-utilisateurs). Workspace + profil + catégories par défaut créés automatiquement au signup via triggers PostgreSQL.
 
-**RLS activé sur les 10 tables `public`** (vérifié). Règle fondamentale :
+**RLS activé sur les 11 tables `public`** (vérifié). Règle fondamentale :
 ```sql
 workspace_id IN (
   SELECT workspace_id FROM workspace_members
   WHERE user_id = auth.uid() AND accepted_at IS NOT NULL
 )
 ```
-**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **6 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `goals`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql`.
+**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **7 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `investment_valuations`, `goals`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql` + `20260825000000_investments_portfolio.sql`.
 
-⚠️ **Règle à ne pas oublier pour Phase 8** : `investments` a *déjà* cette policy AAL2 en base. Toute nouvelle page qui la lit **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug trouvé et corrigé en Phase 6 pour `/transactions`/`/subscriptions`, appliqué dès la conception pour `/budget`/`/goals` en Phase 7).
+⚠️ **Règle à appliquer dès la conception pour toute future page lisant une table financière** : elle **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug trouvé et corrigé en Phase 6 pour `/transactions`/`/subscriptions`, appliqué dès la conception pour `/budget`/`/goals` en Phase 7 et `/investments` en Phase 8).
 
 ---
 
@@ -139,7 +140,7 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **123 tests actuellement, tous verts, 98 % de couverture.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **151 tests actuellement, tous verts, 98,6 % de couverture.**
 - Coverage cible 80 % sur `packages/core`.
 - `apps/web` : pas encore de tests (E2E Playwright prévu Phase 9). Vérification actuelle = API REST directe (curl/node) contre Supabase local + tests de garde de routes.
 
@@ -239,7 +240,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 3. **Transactions** — liste, édition/duplication/suppression, mutations optimistes ✅
 4. **Abonnements / Récurrences** — CRUD + génération auto via `pg_cron`, dashboard "prochains prélèvements" ✅ (Web Push notifications restant)
 5. **Budget** — CRUD, barres de progression 80%/100%, suggestion 3 mois, taux d'épargne ✅
-6. **Investissements** — Phase 8
+6. **Investissements** — CRUD positions, P&L latent/réalisé, allocation par classe/devise, courbe de valorisation, encart patrimoine dashboard ✅
 7. **Objectifs** — CRUD, jauge, contribution mensuelle nécessaire, alerte échéance dépassée ✅
 8. **Multi-devises** — 165 devises, taux gelé, flag approximatif ✅
 9. **Remboursements** — catégorie présente, workflow à préciser
@@ -258,8 +259,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Phase 5** ✅ Dashboard + visualisations Recharts
 - **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *reste* : PWA + Web Push
 - **Phase 7** ✅ Budget (progression, alertes, suggestion, taux d'épargne) + Objectifs (jauge, contribution mensuelle)
-- **Phase 8** ← *prochaine* : Investissements
-- **Phase 9** : Export + **Réglages (compte : email/mdp)** + accessibilité + E2E
+- **Phase 8** ✅ Investissements (positions, P&L latent/réalisé, allocation, courbe de valorisation, encart patrimoine)
+- **Phase 9** ← *prochaine* : Export + **Réglages (compte : email/mdp)** + accessibilité + E2E
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
 
@@ -280,6 +281,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **ADR-012** *(session)* : support de **165 devises** (étend le « 9 » initial) grâce aux métadonnées auto-générées — motivé par les besoins voyageurs.
 - **ADR-013** *(Phase 6)* : génération des transactions récurrentes en **fonction PostgreSQL pure + `pg_cron`** (pas d'Edge Function ni `pg_net`) — la logique ne dépend d'aucune API externe, donc autant rester 100 % en base : plus simple, pas de secret Vault à gérer, plus robuste (tourne même si les Edge Functions sont down).
 - **ADR-014** *(Phase 6)* : workflow Git formalisé — une branche par phase, merge `--no-ff` dans `main` en fin de phase après vérification CI locale (voir *Workflow Git*). `CLAUDE.md` mis à jour à chaque fin de phase, systématiquement.
+- **ADR-015** *(Phase 8)* : `investments` étendue plutôt que réécrite. Deux sources Notion (Spec Fonctionnelle Module 6, page « Schéma de Base de Données ») décrivaient un modèle différent (`type`/`amount_invested`/`current_value`, et la seconde encore en `user_id` — un brouillon antérieur au pivot `workspace_id`, ADR-007). Le schéma déjà livré (`quantity`/`buy_price_eur`/`current_price_eur`) est plus précis pour le P&L ; `montant investi`/`valeur actuelle` en sont dérivés, pas dupliqués. Colonnes additives (`asset_type`, `broker`, `opened_at`, `notes`, `closed_at`, `sale_price_eur`) + nouvelle table `investment_valuations` pour l'historique de valorisation (absent des deux schémas Notion, pourtant requis par la Roadmap).
 
 ---
 
