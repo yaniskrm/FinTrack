@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phases 0→8 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 9 — export + réglages compte + accessibilité + E2E.**
+**Phase courante : Phases 0→9 livrées (web), mergées dans `main`, CI verte. v1.0 web complète — backlog restant : v2 (voir Roadmap).**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -46,7 +46,7 @@ fintrack/
 │   ├── web/                      ← Next.js 15 — LA cible v1
 │   │   ├── app/
 │   │   │   ├── (auth)/           ← login, signup, forgot-password, reset-password
-│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, settings/security (protégé)
+│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, investments, settings/{account,security,export} (protégé)
 │   │   │   ├── auth/callback/    ← échange du code PKCE (email + reset)
 │   │   │   ├── mfa/              ← step-up 2FA au login
 │   │   │   ├── privacy/          ← RGPD (template, à faire relire juridiquement)
@@ -58,17 +58,21 @@ fintrack/
 │   │   │   ├── recurring/        ← dialog + liste des abonnements
 │   │   │   ├── budgets/          ← dialog + liste (barres de progression)
 │   │   │   ├── goals/            ← dialog + liste (jauges de progression)
+│   │   │   ├── investments/      ← dialogs (position/valorisation/clôture), allocation donuts, courbe de performance
+│   │   │   ├── settings/         ← export (CSV/JSON/PDF), settings-nav (Compte/Sécurité/Export)
 │   │   │   ├── app-shell, logo, theme-provider, theme-toggle, providers, IdleTimeout
-│   │   ├── hooks/                ← use-transactions, use-recurring, use-budgets, use-goals (optimistes)
-│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions, mfa), transactions, recurring, budgets, goals, dashboard, currencies, env, utils
+│   │   ├── hooks/                ← use-transactions, use-recurring, use-budgets, use-goals, use-investments (optimistes)
+│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions incl. update email/change password, mfa), transactions, recurring, budgets, goals, investments, export (queries/csv/json/pdf/download), dashboard, currencies, env, utils
+│   │   ├── e2e/                  ← Playwright (chromium + webkit) : auth, transactions, budget/goals, export, mfa/AAL2, accessibilité (axe-core)
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 151 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 169 tests Vitest.
 │   │   └── src/
 │   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique)
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
-│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment-schema) + impératifs (auth, mfa, transaction, recurring)
+│   │       ├── export/           ← CSV (RFC 4180) + JSON (sauvegarde complète RGPD) — transactions/budgets/investments
+│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment-schema) + impératifs (auth incl. update email/password, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
@@ -76,8 +80,7 @@ fintrack/
 │   ├── migrations/               ← Schéma versionné (10 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
-│   │   ├── send-notifications/   ← (stub — Web Push récurrences, reste de la Phase 6)
-│   │   └── export-pdf/           ← (stub — Phase 9)
+│   │   └── send-notifications/   ← (stub — Web Push récurrences, reste de la Phase 6)
 │   └── seed.sql
 └── docs/adr/
 ```
@@ -140,9 +143,9 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **151 tests actuellement, tous verts, 98,6 % de couverture.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **169 tests actuellement, tous verts, 98,5 % de couverture.**
 - Coverage cible 80 % sur `packages/core`.
-- `apps/web` : pas encore de tests (E2E Playwright prévu Phase 9). Vérification actuelle = API REST directe (curl/node) contre Supabase local + tests de garde de routes.
+- `apps/web` : E2E Playwright (`apps/web/e2e/`, chromium + webkit) — signup/login, saisie rapide, budget/objectif, les 3 formats d'export, cycle complet 2FA/AAL2 (codes TOTP réels via `otpauth`). Audit d'accessibilité intégré : chaque page/dialog clé est scannée par `@axe-core/playwright` (WCAG 2 A/AA) dans la même suite — c'est le mécanisme d'audit, pas une relecture manuelle. Tourne en CI (job `E2E`) contre Supabase local + un vrai build de prod.
 
 ### Récurrences (Phase 6)
 - Une `recurring_rule` **n'est pas** une transaction — elle en **génère**. Fonction SQL pure `generate_due_recurring_transactions()` (`supabase/functions` non, c'est une fonction PostgreSQL dans une migration), appelée quotidiennement à 05h00 UTC par `pg_cron` (appel direct, pas de `pg_net` car interne à la DB).
@@ -204,6 +207,9 @@ pnpm dev                            # Next.js dev (apps/web)  — NE PAS lancer 
 pnpm --filter @fintrack/core test   # tests unitaires
 pnpm turbo typecheck lint --filter=@fintrack/core --filter=@fintrack/web   # (exclut le lint mobile cassé)
 pnpm --filter @fintrack/web build
+pnpm --filter @fintrack/web exec playwright test              # E2E — nécessite Supabase local + app servie sur :3000 (auto via webServer si aucun serveur ne tourne déjà)
+pnpm --filter @fintrack/web exec playwright test --ui         # E2E en mode UI (debug pas à pas)
+pnpm --filter @fintrack/web exec playwright show-report       # rapport HTML du dernier run
 
 supabase start                      # Postgres + Studio (54323) + Inbucket emails (54324)
 supabase migration up --local       # applique les migrations SANS wiper les données
@@ -244,8 +250,9 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 7. **Objectifs** — CRUD, jauge, contribution mensuelle nécessaire, alerte échéance dépassée ✅
 8. **Multi-devises** — 165 devises, taux gelé, flag approximatif ✅
 9. **Remboursements** — catégorie présente, workflow à préciser
-10. **Export** — CSV/PDF/JSON — Phase 9
-11. **Module IA** — v2
+10. **Export** — CSV (transactions, période paramétrable), JSON (sauvegarde complète, portabilité RGPD), PDF (rapport mensuel — résumé, répartition catégories, budgets, transactions) ✅
+11. **Réglages du compte** — changement d'email (double confirmation Supabase), changement de mot de passe (ré-authentification), gestion 2FA TOTP ✅
+12. **Module IA** — v2
 
 ---
 
@@ -260,7 +267,9 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *reste* : PWA + Web Push
 - **Phase 7** ✅ Budget (progression, alertes, suggestion, taux d'épargne) + Objectifs (jauge, contribution mensuelle)
 - **Phase 8** ✅ Investissements (positions, P&L latent/réalisé, allocation, courbe de valorisation, encart patrimoine)
-- **Phase 9** ← *prochaine* : Export + **Réglages (compte : email/mdp)** + accessibilité + E2E
+- **Phase 9** ✅ Export (CSV/JSON/PDF) + Réglages compte (email/mdp) + accessibilité (axe-core) + E2E Playwright (CI)
+
+**v1.0 web complète.** Prochaine étape : backlog v2 (voir ci-dessous) — pas de Phase 10 planifiée pour l'instant.
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
 
@@ -282,6 +291,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **ADR-013** *(Phase 6)* : génération des transactions récurrentes en **fonction PostgreSQL pure + `pg_cron`** (pas d'Edge Function ni `pg_net`) — la logique ne dépend d'aucune API externe, donc autant rester 100 % en base : plus simple, pas de secret Vault à gérer, plus robuste (tourne même si les Edge Functions sont down).
 - **ADR-014** *(Phase 6)* : workflow Git formalisé — une branche par phase, merge `--no-ff` dans `main` en fin de phase après vérification CI locale (voir *Workflow Git*). `CLAUDE.md` mis à jour à chaque fin de phase, systématiquement.
 - **ADR-015** *(Phase 8)* : `investments` étendue plutôt que réécrite. Deux sources Notion (Spec Fonctionnelle Module 6, page « Schéma de Base de Données ») décrivaient un modèle différent (`type`/`amount_invested`/`current_value`, et la seconde encore en `user_id` — un brouillon antérieur au pivot `workspace_id`, ADR-007). Le schéma déjà livré (`quantity`/`buy_price_eur`/`current_price_eur`) est plus précis pour le P&L ; `montant investi`/`valeur actuelle` en sont dérivés, pas dupliqués. Colonnes additives (`asset_type`, `broker`, `opened_at`, `notes`, `closed_at`, `sale_price_eur`) + nouvelle table `investment_valuations` pour l'historique de valorisation (absent des deux schémas Notion, pourtant requis par la Roadmap).
+- **ADR-016** *(Phase 9)* : export PDF **généré côté client** (jsPDF, tableaux + un histogramme dessiné avec les primitives du package) plutôt qu'en finalisant le stub Edge Function `export-pdf`. Aucun round-trip serveur, aucun secret à gérer pour cette fonctionnalité, et surtout testable en E2E dans le même run que le reste (le stub, jamais implémenté, est supprimé — cf. Pièges connus pour la découverte qui a motivé ce choix). Le rapport est volontairement textuel/tabulaire plutôt qu'une capture des graphes Recharts du dashboard (pas de dépendance html2canvas/rasterisation SVG).
+- **ADR-017** *(Phase 9)* : audit d'accessibilité fait via **scans automatisés `@axe-core/playwright`** intégrés à la suite E2E (chaque page/dialog clé, tags `wcag2a`/`wcag2aa`), pas une relecture manuelle du code. A immédiatement trouvé un vrai échec de contraste WCAG AA (`--muted-foreground` à 4,39:1, corrigé à 4,5:1+) qu'une relecture aurait pu manquer — preuve que l'automatisation est la bonne méthode ici, à reconduire pour toute nouvelle page.
 
 ---
 
@@ -296,6 +307,10 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Drapeaux emoji** : rendus sur macOS/iOS/Android, remplacés par le code pays sur Windows (le code devise reste affiché → pas de perte d'info).
 - **Le CI doit builder `@fintrack/core` avant de typechecker/builder le web** (`main`/`types` de core pointent vers `./dist`, absent tant que non buildé). Le CI utilise désormais **Turbo** (`pnpm turbo lint typecheck` / `pnpm turbo build --filter=@fintrack/web`), dont les tâches ont `dependsOn: ["^build"]` → core buildé en premier automatiquement. Ne JAMAIS revenir à `pnpm --filter @fintrack/web typecheck` en direct dans le CI (ça a cassé le pipeline une fois, cf. `.github/workflows/ci.yml`). Le **lint est activé** dans le CI depuis ce fix (scopé core+web).
 - **Gate AAL2 du middleware** : toute page qui lit une table financière (voir liste plus haut) doit être ajoutée à `AUTH_REQUIRED_PREFIXES` **et** `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`. Oublié pour `/transactions` et `/subscriptions` jusqu'à ce que ce soit trouvé et corrigé en Phase 6 — vérifier systématiquement pour Phase 7/8 (`/budget`, `/investments`, `/goals`).
+- **`process.env[nom]` (accès dynamique) ne fonctionne JAMAIS côté navigateur.** Next.js inline les variables `NEXT_PUBLIC_*` en remplaçant l'expression **littérale** `process.env.NEXT_PUBLIC_X` à la compilation — un accès calculé (`process.env[name]`) ne peut jamais matcher ce pattern et vaut `undefined` dans tout bundle client. `lib/supabase/client.ts` utilisait le `requireEnv(name)` générique (conçu pour le serveur/edge, où `process.env` est un vrai objet) — cassé silencieusement en Phase 9, masqué partout ailleurs par le fallback `initialData` de TanStack Query qui ne fait jamais remonter l'échec du refetch en arrière-plan. **Toujours écrire `process.env.NEXT_PUBLIC_X` en toutes lettres pour tout code exécuté dans le navigateur** ; `requireEnv` reste correct pour `middleware.ts` (edge) et `lib/supabase/server.ts` (Node).
+- **Une redirection `redirect()` dans une Server Action ne « chaîne » pas de façon fiable à travers une redirection du middleware côté client.** `signInAction` redirigeait toujours vers `/dashboard` en comptant sur le middleware pour rediriger ensuite vers `/mfa` si un step-up AAL2 était en attente — le serveur calculait bien la bonne destination et servait `/mfa`, mais l'URL du navigateur restait bloquée sur `/dashboard`. Fix : l'action qui vient d'authentifier l'utilisateur doit décider elle-même de la destination (appeler `getAuthenticatorAssuranceLevel()` et rediriger directement vers `/mfa` si nécessaire), pas déléguer au prochain aller-retour.
+- **Dans les dialogs Radix (bouton d'en-tête « Ajouter » qui ouvre + bouton de soumission du formulaire dans le dialog) : les deux boutons partagent le même nom accessible.** `page.getByRole("button", { name: "Ajouter" })` non scopé est ambigu pendant que le dialog est ouvert — a cassé les tests E2E (dialog qui ne se referme jamais). Toujours scoper le clic de soumission : `page.getByRole("dialog").getByRole("button", { name: "..." })`.
+- **CI E2E : épingler la CLI Supabase (`supabase/setup-cli@v1` → `version: 2.75.0`), jamais `latest`.** Avec `latest`, `createGoalAction`/`createBudgetAction`/`createTransactionAction` échouaient de façon reproductible avec « Espace introuvable » juste après un signup frais (le trigger `on_auth_user_created` semblait ne pas avoir fini de créer le workspace), uniquement en CI — jamais en local, y compris en reproduisant un `supabase db reset` à froid en boucle. Ne monter la version qu'après l'avoir revérifiée manuellement.
 
 ---
 
@@ -304,6 +319,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **GitHub CLI (`gh`)** : Disponible pour gérer les PRs et le statut de la CI (`gh pr create`, `gh pr checks --watch`, `gh run view --log-failed`).
 - **Base de données & Docker** : Supabase local tourne sous Docker (`localhost:54322`). Toujours inspecter le schéma ou tester les migrations via le client local avant de valider.
 - **Notion** : MCP connecté. Consulter le Wiki du projet avant d'entamer une nouvelle phase pour aligner les specs, et mettre à jour les pages de suivi une fois la phase livrée.
+- **Playwright** : navigateurs installés localement (`pnpm --filter @fintrack/web exec playwright install --with-deps chromium webkit`). Permet de réellement cliquer-tester l'app (contrairement aux phases précédentes, vérifiées uniquement via REST/curl) — privilégier `pnpm --filter @fintrack/web exec playwright test` en local avant de pousser toute modification touchant `apps/web/e2e/`.
 
 ## Protocole de livraison autonome
 
