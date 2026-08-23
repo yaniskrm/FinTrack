@@ -87,15 +87,32 @@ export interface Budget {
 
 // ─── Investment ───────────────────────────────────────────────────────────────
 
+export type InvestmentType = "etf" | "stock" | "scpi" | "savings" | "crypto" | "other";
+
 export interface Investment {
   id: string;
   workspace_id: string;
   name: string;
+  asset_type: InvestmentType;
   ticker: string | null;
+  broker: string | null;
   quantity: number;
   buy_price_eur: number;
   current_price_eur: number;
   currency: Currency;
+  opened_at: string | null;
+  notes: string | null;
+  closed_at: string | null; // set together with sale_price_eur — realized position
+  sale_price_eur: number | null;
+  created_at: string;
+}
+
+export interface InvestmentValuation {
+  id: string;
+  workspace_id: string;
+  investment_id: string;
+  price_eur: number;
+  recorded_at: string; // ISO 8601 date string
   created_at: string;
 }
 

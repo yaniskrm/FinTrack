@@ -7,6 +7,7 @@ export * from "./calculations/budget.js";
 export * from "./calculations/dashboard.js";
 export * from "./calculations/goal.js";
 export * from "./calculations/health-score.js";
+export * from "./calculations/investments.js";
 
 // Currency
 export * from "./currency/conversion.js";
@@ -22,3 +23,4 @@ export type { RecurringRuleInput } from "./validators/recurring.js";
 export * from "./validators/recurring-schema.js";
 export * from "./validators/budget-schema.js";
 export * from "./validators/goal-schema.js";
+export * from "./validators/investment-schema.js";

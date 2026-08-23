@@ -13,6 +13,7 @@ const AUTH_REQUIRED_PREFIXES = [
   "/subscriptions",
   "/budget",
   "/goals",
+  "/investments",
 ];
 // Routes that additionally require a fully stepped-up (AAL2) session when the
 // user has 2FA enabled. `/mfa` is deliberately excluded — it's where step-up
@@ -28,6 +29,7 @@ const AAL2_GATED_PREFIXES = [
   "/subscriptions",
   "/budget",
   "/goals",
+  "/investments",
 ];
 // Routes that only make sense when logged out.
 const LOGGED_OUT_ONLY_PREFIXES = ["/login", "/signup", "/forgot-password"];

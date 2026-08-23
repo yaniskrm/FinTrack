@@ -12,6 +12,7 @@ import {
   Menu,
   Repeat,
   Shield,
+  TrendingUp,
   Wallet,
   X,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/subscriptions", label: "Abonnements", icon: Repeat },
   { href: "/budget", label: "Budget", icon: Wallet },
   { href: "/goals", label: "Objectifs", icon: Flag },
+  { href: "/investments", label: "Investissements", icon: TrendingUp },
   { href: "/settings/security", label: "Sécurité", icon: Shield },
 ] as const;
 
