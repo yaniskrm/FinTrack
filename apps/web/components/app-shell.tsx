@@ -11,7 +11,7 @@ import {
   LogOut,
   Menu,
   Repeat,
-  Shield,
+  Settings,
   TrendingUp,
   Wallet,
   X,
@@ -29,7 +29,7 @@ const NAV = [
   { href: "/budget", label: "Budget", icon: Wallet },
   { href: "/goals", label: "Objectifs", icon: Flag },
   { href: "/investments", label: "Investissements", icon: TrendingUp },
-  { href: "/settings/security", label: "Sécurité", icon: Shield },
+  { href: "/settings/account", label: "Réglages", icon: Settings },
 ] as const;
 
 export function AppShell({ email, children }: { email: string; children: ReactNode }) {
@@ -41,7 +41,12 @@ export function AppShell({ email, children }: { email: string; children: ReactNo
     return (
       <>
         {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          // "/settings/account" also highlights for its /security and /export
+          // sibling tabs — they're all reached from the same "Réglages" entry.
+          const active =
+            pathname === href ||
+            pathname.startsWith(`${href}/`) ||
+            (href === "/settings/account" && pathname.startsWith("/settings/"));
           return (
             <Link
               key={href}
