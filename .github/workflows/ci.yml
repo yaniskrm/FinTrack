@@ -138,6 +138,14 @@ jobs:
       - name: Start Supabase local (applies migrations + seed)
         run: supabase start
 
+      # `start` alone can leave PostgREST serving a schema cache from just
+      # before the last migration finished applying (spurious 403s on tables
+      # gated by a RESTRICTIVE policy added in a late migration) — `db reset`
+      # forces a full re-apply + container restart, guaranteeing PostgREST
+      # boots against the final schema. Cheap and reliable on a fresh DB.
+      - name: Reset Supabase local (forces a clean PostgREST schema cache)
+        run: supabase db reset
+
       # `supabase status -o env` prints shell-quoted `KEY="value"` lines (meant
       # for sourcing) — GITHUB_ENV needs bare `KEY=value`, so the surrounding
       # quotes must be stripped too, not just the key renamed.
