@@ -109,3 +109,80 @@ jobs:
   #     - run: pnpm --filter @fintrack/core test
   #     - if: always()
   #       run: supabase stop
+
+  # ─── E2E (Playwright, against Supabase local + a production build) ────
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [quality, unit-tests, build-web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @fintrack/web exec playwright install --with-deps chromium webkit
+
+      # Pinned, not "latest": CI was hitting "Espace introuvable." (no
+      # workspace found) on the very first request after signup — the
+      # on_auth_user_created trigger (AFTER INSERT ON auth.users, creates the
+      # workspace/workspace_member synchronously in the same transaction)
+      # appears not to have run yet by the time the client's next request
+      # lands, only reproducing against the CLI's newer default stack, never
+      # locally against 2.75.0 (extensively retested, including from-scratch
+      # `db reset`s). Pin to the version this workflow is actually verified
+      # against; bump deliberately, not implicitly on every run.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.75.0
+
+      - name: Start Supabase local (applies migrations + seed)
+        run: supabase start
+
+      # `start` alone can leave PostgREST serving a schema cache from just
+      # before the last migration finished applying (spurious 403s on tables
+      # gated by a RESTRICTIVE policy added in a late migration) — `db reset`
+      # forces a full re-apply + container restart, guaranteeing PostgREST
+      # boots against the final schema. Cheap and reliable on a fresh DB.
+      - name: Reset Supabase local (forces a clean PostgREST schema cache)
+        run: supabase db reset
+
+      # `supabase status -o env` prints shell-quoted `KEY="value"` lines (meant
+      # for sourcing) — GITHUB_ENV needs bare `KEY=value`, so the surrounding
+      # quotes must be stripped too, not just the key renamed.
+      - name: Export Supabase local env into GITHUB_ENV
+        run: |
+          supabase status -o env | grep -E '^(API_URL|ANON_KEY)=' | sed \
+            -e 's/^API_URL="\(.*\)"$/NEXT_PUBLIC_SUPABASE_URL=\1/' \
+            -e 's/^ANON_KEY="\(.*\)"$/NEXT_PUBLIC_SUPABASE_ANON_KEY=\1/' \
+            >> "$GITHUB_ENV"
+
+      # Turbo builds @fintrack/core first (dependsOn "^build"), then the web
+      # app — this time against the real local Supabase, not the placeholder
+      # used by the build-web job (which only checks the build succeeds).
+      - name: Build web against Supabase local
+        run: pnpm turbo build --filter=@fintrack/web
+
+      - name: Run Playwright tests
+        run: pnpm --filter @fintrack/web exec playwright test
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - if: always()
+        run: supabase stop

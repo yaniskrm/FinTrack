@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  validateChangePassword,
   validateResetPassword,
   validateSignIn,
   validateSignUp,
+  validateUpdateEmail,
   validateUpdatePassword,
 } from "./auth.js";
 
@@ -90,6 +92,42 @@ describe("validateUpdatePassword", () => {
       password: "password123",
       confirmPassword: "password124",
     });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("confirmPassword must match password");
+  });
+});
+
+describe("validateUpdateEmail", () => {
+  it("accepts a valid email", () => {
+    expect(validateUpdateEmail({ email: "new@example.com" })).toEqual({ valid: true, errors: [] });
+  });
+
+  it("rejects an invalid email", () => {
+    const result = validateUpdateEmail({ email: "nope" });
+    expect(result.valid).toBe(false);
+  });
+});
+
+describe("validateChangePassword", () => {
+  const base = { currentPassword: "oldpassword", password: "newpassword123", confirmPassword: "newpassword123" };
+
+  it("accepts a valid change with the current password provided", () => {
+    expect(validateChangePassword(base)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("rejects a missing current password", () => {
+    const result = validateChangePassword({ ...base, currentPassword: "" });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("currentPassword is required");
+  });
+
+  it("rejects a new password shorter than 8 characters", () => {
+    const result = validateChangePassword({ ...base, password: "short1", confirmPassword: "short1" });
+    expect(result.valid).toBe(false);
+  });
+
+  it("rejects a mismatched confirmation", () => {
+    const result = validateChangePassword({ ...base, confirmPassword: "different123" });
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("confirmPassword must match password");
   });

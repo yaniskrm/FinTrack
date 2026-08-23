@@ -24,6 +24,16 @@ export interface UpdatePasswordInput {
   confirmPassword: unknown;
 }
 
+export interface UpdateEmailInput {
+  email: unknown;
+}
+
+export interface ChangePasswordInput {
+  currentPassword: unknown;
+  password: unknown;
+  confirmPassword: unknown;
+}
+
 function pushEmailErrors(email: unknown, errors: string[]): void {
   if (typeof email !== "string" || email.trim().length === 0) {
     errors.push("email is required");
@@ -77,6 +87,35 @@ export function validateResetPassword(input: ResetPasswordInput): ValidationResu
 
 export function validateUpdatePassword(input: UpdatePasswordInput): ValidationResult {
   const errors: string[] = [];
+
+  pushPasswordErrors(input.password, errors);
+
+  if (input.confirmPassword !== input.password) {
+    errors.push("confirmPassword must match password");
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+export function validateUpdateEmail(input: UpdateEmailInput): ValidationResult {
+  const errors: string[] = [];
+
+  pushEmailErrors(input.email, errors);
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Password change from within the app (as opposed to the forgot-password
+ * recovery flow): requires the current password too, so a hijacked/left-open
+ * session can't silently lock the real owner out.
+ */
+export function validateChangePassword(input: ChangePasswordInput): ValidationResult {
+  const errors: string[] = [];
+
+  if (typeof input.currentPassword !== "string" || input.currentPassword.length === 0) {
+    errors.push("currentPassword is required");
+  }
 
   pushPasswordErrors(input.password, errors);
 

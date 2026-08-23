@@ -18,7 +18,7 @@ export default async function SecuritySettingsPage() {
   const { enrolled, factorId } = await getMfaStatus();
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6">
+    <>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Sécurité</h1>
         <p className="text-sm text-muted-foreground">
@@ -47,6 +47,6 @@ export default async function SecuritySettingsPage() {
           {enrolled && factorId ? <DisableTotp factorId={factorId} /> : <EnrollTotp />}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
