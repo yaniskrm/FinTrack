@@ -1,5 +1,6 @@
 import type { Budget, Goal, Transaction } from "../types/index.js";
 import { calculateBudgetStatuses } from "./budget.js";
+import { calculateSavingsRate } from "./balance.js";
 
 export interface HealthScore {
   score: number;        // 0–100
@@ -20,15 +21,10 @@ export function calculateHealthScore(
   budgets: Budget[],
   goals: Goal[],
 ): HealthScore {
-  // Savings rate (income vs expenses)
-  let income = 0;
-  let expenses = 0;
-  for (const tx of transactions) {
-    if (tx.type === "income") income += tx.amount_eur;
-    else if (tx.type === "expense") expenses += tx.amount_eur;
-  }
-  const savingsRate =
-    income > 0 ? Math.min(100, Math.max(0, ((income - expenses) / income) * 100)) : 0;
+  // Savings rate (income vs expenses), clamped to a 0-100 point contribution
+  // (calculateSavingsRate itself is unclamped — see balance.ts — because the
+  // dashboard displays the raw, possibly-negative rate; only the score needs it capped).
+  const savingsRate = Math.min(100, Math.max(0, calculateSavingsRate(transactions)));
 
   // Budget adherence — penalise exceeded budgets
   const statuses = calculateBudgetStatuses(budgets, transactions);

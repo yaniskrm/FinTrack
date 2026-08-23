@@ -51,3 +51,15 @@ export function calculateTotals(transactions: Transaction[]): {
 
   return { totalIncome, totalExpenses, netBalance: totalIncome - totalExpenses };
 }
+
+/**
+ * Savings rate as a percentage of income: (income - expenses) / income * 100.
+ * Unclamped — can go negative (spending more than earned) or, in principle,
+ * above 100. Returns 0 when there is no income (avoids division by zero).
+ * The 50/30/20 rule recommends at least 20%.
+ */
+export function calculateSavingsRate(transactions: Transaction[]): number {
+  const { totalIncome, totalExpenses } = calculateTotals(transactions);
+  if (totalIncome <= 0) return 0;
+  return Math.round(((totalIncome - totalExpenses) / totalIncome) * 10000) / 100;
+}

@@ -286,5 +286,27 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 
 ---
 
+## Outillage & Capacités Locales
+
+- **GitHub CLI (`gh`)** : Disponible pour gérer les PRs et le statut de la CI (`gh pr create`, `gh pr checks --watch`, `gh run view --log-failed`).
+- **Base de données & Docker** : Supabase local tourne sous Docker (`localhost:54322`). Toujours inspecter le schéma ou tester les migrations via le client local avant de valider.
+- **Notion** : MCP connecté. Consulter le Wiki du projet avant d'entamer une nouvelle phase pour aligner les specs, et mettre à jour les pages de suivi une fois la phase livrée.
+
+## Protocole de livraison autonome
+
+1. **Specs** : Consulter la doc Notion liée à la phase courante.
+2. **Implémentation & Tests** :
+   - Coder les migrations / RLS / composants / tests Vitest.
+   - Valider la suite de checks locaux (`turbo lint typecheck`, tests core).
+3. **Publication** :
+   - Ouvrir la PR via `gh pr create --fill`.
+   - Surveiller le run avec `gh pr checks --watch`.
+   - Si la CI échoue, analyser les logs (`gh run view --log-failed`), corriger et repousser.
+4. **Clôture** :
+   - Mettre à jour `CLAUDE.md` (ADR, pièges connus, roadmap).
+   - Mettre à jour le Wiki Notion avec l'avancement.
+
+---
+
 *Source de vérité pour Claude Code. **À mettre à jour systématiquement à la fin de chaque phase** (pas seulement sur décision d'archi majeure) : roadmap, structure, compteurs (tests/migrations), nouveaux ADR, nouveaux pièges connus. C'est une étape du workflow de fin de phase (voir *Workflow Git*), pas une tâche à part.*
 *Documentation complète → https://www.notion.so/32127748ca0281ad968bebf687fb73e1*

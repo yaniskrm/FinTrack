@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateBalance, calculateMonthlyBalances, calculateTotals } from "./balance.js";
+import { calculateBalance, calculateMonthlyBalances, calculateSavingsRate, calculateTotals } from "./balance.js";
 import type { Transaction } from "../types/index.js";
 
 const makeTx = (overrides: Partial<Transaction>): Transaction => ({
@@ -71,5 +71,27 @@ describe("calculateTotals", () => {
     expect(result.totalIncome).toBe(2000);
     expect(result.totalExpenses).toBe(800);
     expect(result.netBalance).toBe(1200);
+  });
+});
+
+describe("calculateSavingsRate", () => {
+  it("returns 0 when there's no income", () => {
+    expect(calculateSavingsRate([makeTx({ type: "expense", amount_eur: 100 })])).toBe(0);
+  });
+
+  it("computes the percentage saved", () => {
+    const txs = [
+      makeTx({ type: "income", amount_eur: 1000 }),
+      makeTx({ type: "expense", amount_eur: 800 }),
+    ];
+    expect(calculateSavingsRate(txs)).toBe(20);
+  });
+
+  it("goes negative when expenses exceed income", () => {
+    const txs = [
+      makeTx({ type: "income", amount_eur: 1000 }),
+      makeTx({ type: "expense", amount_eur: 1500 }),
+    ];
+    expect(calculateSavingsRate(txs)).toBe(-50);
   });
 });
