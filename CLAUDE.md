@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phases 0→6 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 7 — budget + objectifs.**
+**Phase courante : Phases 0→7 livrées (web), mergées dans `main`, CI verte. Prochaine : Phase 8 — investissements.**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -46,7 +46,7 @@ fintrack/
 │   ├── web/                      ← Next.js 15 — LA cible v1
 │   │   ├── app/
 │   │   │   ├── (auth)/           ← login, signup, forgot-password, reset-password
-│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, settings/security (protégé)
+│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, settings/security (protégé)
 │   │   │   ├── auth/callback/    ← échange du code PKCE (email + reset)
 │   │   │   ├── mfa/              ← step-up 2FA au login
 │   │   │   ├── privacy/          ← RGPD (template, à faire relire juridiquement)
@@ -56,17 +56,19 @@ fintrack/
 │   │   │   ├── dashboard/        ← charts Recharts + stat tiles + upcoming-recurring
 │   │   │   ├── transactions/     ← dialog de saisie, liste, combobox devise
 │   │   │   ├── recurring/        ← dialog + liste des abonnements
+│   │   │   ├── budgets/          ← dialog + liste (barres de progression)
+│   │   │   ├── goals/            ← dialog + liste (jauges de progression)
 │   │   │   ├── app-shell, logo, theme-provider, theme-toggle, providers, IdleTimeout
-│   │   ├── hooks/                ← use-transactions, use-recurring (optimistes)
-│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions, mfa), transactions, recurring, dashboard, currencies, env, utils
+│   │   ├── hooks/                ← use-transactions, use-recurring, use-budgets, use-goals (optimistes)
+│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions, mfa), transactions, recurring, budgets, goals, dashboard, currencies, env, utils
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 97 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 123 tests Vitest.
 │   │   └── src/
-│   │       ├── calculations/     ← balance, budget, dashboard (donut/sparkline), health-score
+│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
-│   │       ├── validators/       ← Zod (transaction-schema, recurring-schema) + impératifs (auth, mfa, transaction, recurring)
+│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal-schema) + impératifs (auth, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
@@ -92,9 +94,9 @@ categories          ← Personnalisables par workspace (14 par défaut, dont Spo
 transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate)
 recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅
 exchange_rates      ← Taux globaux (165 devises), écrits par l'Edge Function uniquement
-budgets             ← Enveloppes par catégorie (Phase 7)
+budgets             ← Enveloppes par catégorie, alertes 80%/100% ✅
 investments         ← Positions de portefeuille (Phase 8)
-goals               ← Objectifs d'épargne (Phase 7)
+goals               ← Objectifs d'épargne, contribution mensuelle calculée ✅
 push_subscriptions  ← (reste de la Phase 6 — Web Push)
 ```
 
@@ -109,7 +111,7 @@ workspace_id IN (
 ```
 **Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **6 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `goals`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql`.
 
-⚠️ **Règle à ne pas oublier pour Phase 7/8** : `budgets`, `investments`, `goals` ont *déjà* cette policy AAL2 en base. Toute nouvelle page qui lit ces tables **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug réel trouvé et corrigé en Phase 6 pour `/transactions` et `/subscriptions`).
+⚠️ **Règle à ne pas oublier pour Phase 8** : `investments` a *déjà* cette policy AAL2 en base. Toute nouvelle page qui la lit **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug trouvé et corrigé en Phase 6 pour `/transactions`/`/subscriptions`, appliqué dès la conception pour `/budget`/`/goals` en Phase 7).
 
 ---
 
@@ -137,7 +139,7 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **97 tests actuellement, tous verts.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **123 tests actuellement, tous verts, 98 % de couverture.**
 - Coverage cible 80 % sur `packages/core`.
 - `apps/web` : pas encore de tests (E2E Playwright prévu Phase 9). Vérification actuelle = API REST directe (curl/node) contre Supabase local + tests de garde de routes.
 
@@ -146,6 +148,15 @@ workspace_id IN (
 - Rattrape **toutes** les échéances en retard depuis `next_occurrence` (boucle `while`), gèle `amount_eur` au taux courant (+ flag `rate_approximate`), lie la transaction via `recurring_rule_id`, avance le curseur `next_occurrence`. **Idempotente** (vérifié : re-run = 0 nouvelle transaction).
 - Éditer une règle ne touche jamais `start_date`/`next_occurrence` (curseur système, jamais re-backfillé par une édition).
 - Supprimer une règle **garde** les transactions déjà générées (`recurring_rule_id` → `ON DELETE SET NULL`).
+
+### Budget & Objectifs (Phase 7)
+- `budgets`/`goals` stockent **directement en EUR** (`amount_eur`, `target_amount_eur`, `current_amount_eur` — pas de colonne `currency`) : formulaires sans `CurrencyCombobox`, juste un input EUR.
+- Contrainte unique `(workspace_id, category_id, period)` sur `budgets` — un budget par catégorie et par période. `createBudgetAction`/`updateBudgetAction` mappent l'erreur Postgres `23505` (unique_violation) vers un message clair plutôt que de la laisser remonter brute.
+- Barres de progression : vert (`--success`) < 80 %, orange (`--chart-3`) 80–99 %, rouge (`--destructive`) ≥ 100 % — seuils déjà encodés dans `calculateBudgetStatuses` (`isWarning`/`isExceeded`), présents depuis la Phase 5.
+- « Aucun budget défini = aucune barre affichée » (jamais de valeur arbitraire) — règle explicite de la Spec Fonctionnelle Notion.
+- Suggestion de budget = moyenne des 3 mois calendaires **précédents** (exclut le mois en cours, forcément partiel).
+- Contribution mensuelle nécessaire d'un objectif = `(cible − actuel) / mois restants`, mois restants planchés à 1. Statut `overdue` si échéance dépassée sans avoir atteint la cible (= alerte « contribution insuffisante »).
+- Éditer un budget/objectif ne touche jamais `created_at` ; éditer une règle récurrente reste le seul cas où un champ « curseur système » (`next_occurrence`) est protégé contre l'édition.
 
 ---
 
@@ -215,7 +226,7 @@ pnpm dlx supabase@latest gen types typescript --local > packages/api-client/src/
    ```
 3. `git checkout main && git merge --no-ff feat/web-phase-N && git push origin main`.
 4. **Mettre à jour ce `CLAUDE.md`** (roadmap, ADR si décision d'archi, pièges connus) — À FAIRE SYSTÉMATIQUEMENT à chaque fin de phase, ne pas attendre qu'on le demande.
-5. Vérifier le run CI sur GitHub Actions (le CLI `gh` n'est pas dispo dans l'env → vérification manuelle par l'utilisateur, ou lien de PR à ouvrir au navigateur si besoin).
+5. Vérifier le run CI sur GitHub Actions — `gh` **est disponible** dans l'env (`gh pr checks --watch`, `gh run watch <id> --exit-status`) depuis la Phase 7, plus besoin de vérification manuelle au navigateur.
 
 Commits : `type(scope): description`. **Jamais de push direct sur `main` sans être passé par une branche + vérif CI locale d'abord.**
 
@@ -227,9 +238,9 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 2. **Saisie rapide** — Dialog + raccourci `N`, < 5 s ✅
 3. **Transactions** — liste, édition/duplication/suppression, mutations optimistes ✅
 4. **Abonnements / Récurrences** — CRUD + génération auto via `pg_cron`, dashboard "prochains prélèvements" ✅ (Web Push notifications restant)
-5. **Budget** — Phase 7
+5. **Budget** — CRUD, barres de progression 80%/100%, suggestion 3 mois, taux d'épargne ✅
 6. **Investissements** — Phase 8
-7. **Objectifs** — Phase 7
+7. **Objectifs** — CRUD, jauge, contribution mensuelle nécessaire, alerte échéance dépassée ✅
 8. **Multi-devises** — 165 devises, taux gelé, flag approximatif ✅
 9. **Remboursements** — catégorie présente, workflow à préciser
 10. **Export** — CSV/PDF/JSON — Phase 9
@@ -246,8 +257,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Phase 4** ✅ Multi-devises (Edge Function open.er-api, 165 devises, flag approximatif)
 - **Phase 5** ✅ Dashboard + visualisations Recharts
 - **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *reste* : PWA + Web Push
-- **Phase 7** ← *prochaine* : Budget + objectifs
-- **Phase 8** : Investissements
+- **Phase 7** ✅ Budget (progression, alertes, suggestion, taux d'épargne) + Objectifs (jauge, contribution mensuelle)
+- **Phase 8** ← *prochaine* : Investissements
 - **Phase 9** : Export + **Réglages (compte : email/mdp)** + accessibilité + E2E
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
