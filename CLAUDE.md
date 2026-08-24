@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phases 0→9 livrées (web), mergées dans `main`, CI verte. v1.0 web complète — backlog restant : v2 (voir Roadmap).**
+**Phase courante : v1.1 livrée (web push, PWA, README, setup 1-commande), mergée dans `main`, CI verte. v1.0.0 taguée, v1.1 en cours de tag — backlog restant : v2 (voir Roadmap).**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -77,10 +77,10 @@ fintrack/
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
 ├── supabase/
-│   ├── migrations/               ← Schéma versionné (10 migrations)
+│   ├── migrations/               ← Schéma versionné (11 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
-│   │   └── send-notifications/   ← (stub — Web Push récurrences, reste de la Phase 6)
+│   │   └── send-notifications/   ← Cron quotidien 08h UTC : Web Push (VAPID) pour les récurrences J-3/J-1/J0 ✅
 │   └── seed.sql
 └── docs/adr/
 ```
@@ -101,12 +101,12 @@ budgets             ← Enveloppes par catégorie, alertes 80%/100% ✅
 investments         ← Positions de portefeuille (P&L latent/réalisé, allocation) ✅
 investment_valuations ← Historique de valorisation par position (courbe temporelle) ✅
 goals               ← Objectifs d'épargne, contribution mensuelle calculée ✅
-push_subscriptions  ← (reste de la Phase 6 — Web Push)
+push_subscriptions  ← Abonnements Web Push par device/navigateur ✅ (v1.1 — n'existait pas avant, malgré la doc précédente)
 ```
 
-**Point critique** : toutes les tables métier ont un `workspace_id`, jamais un `user_id` direct (anticipe le multi-utilisateurs). Workspace + profil + catégories par défaut créés automatiquement au signup via triggers PostgreSQL.
+**Point critique** : toutes les tables métier ont un `workspace_id`, jamais un `user_id` direct (anticipe le multi-utilisateurs). Workspace + profil + catégories par défaut créés automatiquement au signup via triggers PostgreSQL. **Exception assumée : `push_subscriptions`** — un abonnement push est personnel (lié à un device/navigateur précis), pas une donnée financière partagée ; la RLS y est scopée par `user_id = auth.uid()`, pas par appartenance au workspace (le `workspace_id` reste présent sur la table, pour la lookup service-role de l'Edge Function).
 
-**RLS activé sur les 11 tables `public`** (vérifié). Règle fondamentale :
+**RLS activé sur les 12 tables `public`** (vérifié). Règle fondamentale :
 ```sql
 workspace_id IN (
   SELECT workspace_id FROM workspace_members
@@ -188,14 +188,39 @@ workspace_id IN (
 # apps/web/.env.local (ne jamais committer ; gitignore OK)
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=      # Phase 6
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=      # v1.1 — chaîne base64url (exportApplicationServerKey), PAS un JWK
 NEXT_PUBLIC_SITE_URL=              # fallback redirect email
 
 # Secrets Supabase (Vault / dashboard, jamais côté client)
 SUPABASE_SERVICE_ROLE_KEY=        # Edge Functions
-VAPID_PRIVATE_KEY= / VAPID_SUBJECT= / RESEND_API_KEY=   # Phase 6
+VAPID_PRIVATE_KEY= / VAPID_PUBLIC_KEY= / VAPID_SUBJECT=   # v1.1 — voir *Web Push* ci-dessous : VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY sont chacun un JWK JSON (format @negrel/webpush), PAS des chaînes base64url — ne pas confondre avec NEXT_PUBLIC_VAPID_PUBLIC_KEY qui, lui, en est une
 # NB : open.er-api.com est SANS CLÉ → pas de EXCHANGE_RATE_API_KEY nécessaire.
 ```
+
+### Web Push — génération des clés VAPID
+
+`@negrel/webpush` (voir *Pièges connus*) génère des clés au format JWK, incompatibles avec le CLI `web-push` npm classique. Recette pour en générer une paire fraîche en local (fonction Edge Function jetable, jamais committée) :
+
+```bash
+mkdir -p supabase/functions/vapidkeygen
+cat > supabase/functions/vapidkeygen/index.ts <<'EOF'
+import * as webpush from "https://raw.githubusercontent.com/negrel/webpush/master/mod.ts";
+Deno.serve(async () => {
+  const keys = await webpush.generateVapidKeys({ extractable: true });
+  const exported = await webpush.exportVapidKeys(keys);
+  const applicationServerKey = await webpush.exportApplicationServerKey(keys);
+  return new Response(JSON.stringify({ exported, applicationServerKey }, null, 2));
+});
+EOF
+supabase functions serve vapidkeygen --no-verify-jwt &
+sleep 6
+ANON_KEY=$(supabase status -o env | sed -n 's/^ANON_KEY="\(.*\)"/\1/p')
+curl -s -X POST http://127.0.0.1:54321/functions/v1/vapidkeygen -H "Authorization: Bearer $ANON_KEY"
+kill %1
+rm -rf supabase/functions/vapidkeygen
+```
+
+La réponse donne trois valeurs : `exported.publicKey` et `exported.privateKey` (JWK — à JSON-stringifier tels quels dans `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`), et `applicationServerKey` (chaîne base64url — dans `NEXT_PUBLIC_VAPID_PUBLIC_KEY`).
 
 ---
 
@@ -244,7 +269,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 1. **Dashboard** — solde, sparkline, donut catégories, histogramme mensuel, score de santé ✅
 2. **Saisie rapide** — Dialog + raccourci `N`, < 5 s ✅
 3. **Transactions** — liste, édition/duplication/suppression, mutations optimistes ✅
-4. **Abonnements / Récurrences** — CRUD + génération auto via `pg_cron`, dashboard "prochains prélèvements" ✅ (Web Push notifications restant)
+4. **Abonnements / Récurrences** — CRUD + génération auto via `pg_cron`, dashboard "prochains prélèvements", alertes Web Push J-3/J-1/J0 ✅
 5. **Budget** — CRUD, barres de progression 80%/100%, suggestion 3 mois, taux d'épargne ✅
 6. **Investissements** — CRUD positions, P&L latent/réalisé, allocation par classe/devise, courbe de valorisation, encart patrimoine dashboard ✅
 7. **Objectifs** — CRUD, jauge, contribution mensuelle nécessaire, alerte échéance dépassée ✅
@@ -264,12 +289,16 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Phase 3** ✅ Transactions (Zod, formulaire, liste, TanStack Query optimiste)
 - **Phase 4** ✅ Multi-devises (Edge Function open.er-api, 165 devises, flag approximatif)
 - **Phase 5** ✅ Dashboard + visualisations Recharts
-- **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *reste* : PWA + Web Push
+- **Phase 6** ✅ Récurrences (génération auto pg_cron, CRUD, dashboard) — *Web Push livré en v1.1*
 - **Phase 7** ✅ Budget (progression, alertes, suggestion, taux d'épargne) + Objectifs (jauge, contribution mensuelle)
 - **Phase 8** ✅ Investissements (positions, P&L latent/réalisé, allocation, courbe de valorisation, encart patrimoine)
 - **Phase 9** ✅ Export (CSV/JSON/PDF) + Réglages compte (email/mdp) + accessibilité (axe-core) + E2E Playwright (CI)
 
-**v1.0 web complète.** Prochaine étape : backlog v2 (voir ci-dessous) — pas de Phase 10 planifiée pour l'instant.
+**v1.0.0 taguée.**
+
+- **v1.1** ✅ Fermeture de dette technique + Developer Experience — Web Push effectif (Edge Function `send-notifications` réécrite, VAPID via `@negrel/webpush`), PWA (manifest, icônes, service worker), page Réglages → Notifications, `README.md`, `scripts/setup.sh` (setup 1-commande).
+
+Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 10 planifiée pour l'instant.
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
 
@@ -293,6 +322,7 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **ADR-015** *(Phase 8)* : `investments` étendue plutôt que réécrite. Deux sources Notion (Spec Fonctionnelle Module 6, page « Schéma de Base de Données ») décrivaient un modèle différent (`type`/`amount_invested`/`current_value`, et la seconde encore en `user_id` — un brouillon antérieur au pivot `workspace_id`, ADR-007). Le schéma déjà livré (`quantity`/`buy_price_eur`/`current_price_eur`) est plus précis pour le P&L ; `montant investi`/`valeur actuelle` en sont dérivés, pas dupliqués. Colonnes additives (`asset_type`, `broker`, `opened_at`, `notes`, `closed_at`, `sale_price_eur`) + nouvelle table `investment_valuations` pour l'historique de valorisation (absent des deux schémas Notion, pourtant requis par la Roadmap).
 - **ADR-016** *(Phase 9)* : export PDF **généré côté client** (jsPDF, tableaux + un histogramme dessiné avec les primitives du package) plutôt qu'en finalisant le stub Edge Function `export-pdf`. Aucun round-trip serveur, aucun secret à gérer pour cette fonctionnalité, et surtout testable en E2E dans le même run que le reste (le stub, jamais implémenté, est supprimé — cf. Pièges connus pour la découverte qui a motivé ce choix). Le rapport est volontairement textuel/tabulaire plutôt qu'une capture des graphes Recharts du dashboard (pas de dépendance html2canvas/rasterisation SVG).
 - **ADR-017** *(Phase 9)* : audit d'accessibilité fait via **scans automatisés `@axe-core/playwright`** intégrés à la suite E2E (chaque page/dialog clé, tags `wcag2a`/`wcag2aa`), pas une relecture manuelle du code. A immédiatement trouvé un vrai échec de contraste WCAG AA (`--muted-foreground` à 4,39:1, corrigé à 4,5:1+) qu'une relecture aurait pu manquer — preuve que l'automatisation est la bonne méthode ici, à reconduire pour toute nouvelle page.
+- **ADR-018** *(v1.1)* : Web Push implémenté avec **`@negrel/webpush`** (Web Crypto API native, importé depuis GitHub raw — `jsr:@negrel/webpush` a renvoyé 403 en environnement Claude Code, contourné via `https://raw.githubusercontent.com/negrel/webpush/master/mod.ts`) plutôt que le package npm `web-push` (import `https://esm.sh/web-push@…?target=deno`). **Vérifié en local via `supabase functions serve`** : `web-push` échoue avec `Not implemented: crypto.ECDH` dans l'Edge Runtime (basé sur Node `crypto`, absent de ce runtime Deno) ; `@negrel/webpush` fonctionne (basé sur `crypto.subtle`, disponible). Conséquence assumée : les clés VAPID sont des paires JWK propres à cette librairie (générées via son propre script, pas via le CLI `web-push`), voir *Web Push — génération des clés VAPID* ci-dessus. `send-notifications` a été entièrement réécrite (le stub précédent visait Expo Push, pertinent pour le mobile v2, pas le web).
 
 ---
 
@@ -307,6 +337,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 - **Drapeaux emoji** : rendus sur macOS/iOS/Android, remplacés par le code pays sur Windows (le code devise reste affiché → pas de perte d'info).
 - **Le CI doit builder `@fintrack/core` avant de typechecker/builder le web** (`main`/`types` de core pointent vers `./dist`, absent tant que non buildé). Le CI utilise désormais **Turbo** (`pnpm turbo lint typecheck` / `pnpm turbo build --filter=@fintrack/web`), dont les tâches ont `dependsOn: ["^build"]` → core buildé en premier automatiquement. Ne JAMAIS revenir à `pnpm --filter @fintrack/web typecheck` en direct dans le CI (ça a cassé le pipeline une fois, cf. `.github/workflows/ci.yml`). Le **lint est activé** dans le CI depuis ce fix (scopé core+web).
 - **Gate AAL2 du middleware** : toute page qui lit une table financière (voir liste plus haut) doit être ajoutée à `AUTH_REQUIRED_PREFIXES` **et** `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`. Oublié pour `/transactions` et `/subscriptions` jusqu'à ce que ce soit trouvé et corrigé en Phase 6 — vérifier systématiquement pour Phase 7/8 (`/budget`, `/investments`, `/goals`).
+- **Le package npm `web-push` ne fonctionne PAS dans l'Edge Runtime Supabase (Deno)** — `Not implemented: crypto.ECDH`, quelle que soit la façon dont on l'importe (`esm.sh?target=deno` inclus). Utiliser `@negrel/webpush` (Web Crypto API native). Voir ADR-018 et *Web Push — génération des clés VAPID*.
+- **La Push API ne peut pas être testée end-to-end via Playwright.** Chromium refuse `pushManager.subscribe()` dans un contexte incognito (celui que Playwright utilise toujours par défaut) — `context.grantPermissions(["notifications"])` ne change rien à cette limite. WebKit, de son côté, ne fait pas passer `Notification.permission` à `"granted"` via `grantPermissions` sous Playwright (reste `"default"` même après l'appel). Les deux confirmés en local (v1.1) — pas un bug applicatif. `e2e/notifications.spec.ts` teste donc seulement le rendu de la page, pas le flux d'abonnement complet ; la fonction serveur est testée séparément via `supabase functions serve` + données de test insérées à la main (voir CLAUDE.md historique de session ou refaire la manip : insérer une `recurring_rule` avec `next_occurrence = current_date` et une `push_subscriptions` de test, puis `curl` la fonction).
 - **`process.env[nom]` (accès dynamique) ne fonctionne JAMAIS côté navigateur.** Next.js inline les variables `NEXT_PUBLIC_*` en remplaçant l'expression **littérale** `process.env.NEXT_PUBLIC_X` à la compilation — un accès calculé (`process.env[name]`) ne peut jamais matcher ce pattern et vaut `undefined` dans tout bundle client. `lib/supabase/client.ts` utilisait le `requireEnv(name)` générique (conçu pour le serveur/edge, où `process.env` est un vrai objet) — cassé silencieusement en Phase 9, masqué partout ailleurs par le fallback `initialData` de TanStack Query qui ne fait jamais remonter l'échec du refetch en arrière-plan. **Toujours écrire `process.env.NEXT_PUBLIC_X` en toutes lettres pour tout code exécuté dans le navigateur** ; `requireEnv` reste correct pour `middleware.ts` (edge) et `lib/supabase/server.ts` (Node).
 - **Une redirection `redirect()` dans une Server Action ne « chaîne » pas de façon fiable à travers une redirection du middleware côté client.** `signInAction` redirigeait toujours vers `/dashboard` en comptant sur le middleware pour rediriger ensuite vers `/mfa` si un step-up AAL2 était en attente — le serveur calculait bien la bonne destination et servait `/mfa`, mais l'URL du navigateur restait bloquée sur `/dashboard`. Fix : l'action qui vient d'authentifier l'utilisateur doit décider elle-même de la destination (appeler `getAuthenticatorAssuranceLevel()` et rediriger directement vers `/mfa` si nécessaire), pas déléguer au prochain aller-retour.
 - **Dans les dialogs Radix (bouton d'en-tête « Ajouter » qui ouvre + bouton de soumission du formulaire dans le dialog) : les deux boutons partagent le même nom accessible.** `page.getByRole("button", { name: "Ajouter" })` non scopé est ambigu pendant que le dialog est ouvert — a cassé les tests E2E (dialog qui ne se referme jamais). Toujours scoper le clic de soumission : `page.getByRole("dialog").getByRole("button", { name: "..." })`.

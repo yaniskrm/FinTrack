@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Download, Shield, User } from "lucide-react";
+import { Bell, Download, Shield, User } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 const TABS = [
   { href: "/settings/account", label: "Compte", icon: User },
   { href: "/settings/security", label: "Sécurité", icon: Shield },
+  { href: "/settings/notifications", label: "Notifications", icon: Bell },
   { href: "/settings/export", label: "Export", icon: Download },
 ] as const;
 
