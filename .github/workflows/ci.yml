@@ -164,6 +164,11 @@ jobs:
             -e 's/^API_URL="\(.*\)"$/NEXT_PUBLIC_SUPABASE_URL=\1/' \
             -e 's/^ANON_KEY="\(.*\)"$/NEXT_PUBLIC_SUPABASE_ANON_KEY=\1/' \
             >> "$GITHUB_ENV"
+          # Public half of a throwaway local-only VAPID pair (not a secret —
+          # "public" is the point) so the notifications settings page renders
+          # its "off" state (with the enable button) instead of "unconfigured"
+          # for the a11y/notifications E2E specs.
+          echo 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=BIEAsae-LfktAEprjNLXWwMZH02wq9lsm6MZNhqeqv_OMS-NLBtXK3s2H5zt-iUAk2s5BHh302z-5Y5w8yNGMks' >> "$GITHUB_ENV"
 
       # Turbo builds @fintrack/core first (dependsOn "^build"), then the web
       # app — this time against the real local Supabase, not the placeholder

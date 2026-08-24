@@ -48,9 +48,9 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expectNoViolations(page);
   });
 
-  test("settings: account, security, export", async ({ page }) => {
+  test("settings: account, security, notifications, export", async ({ page }) => {
     await signUpAndLogIn(page);
-    for (const path of ["/settings/account", "/settings/security", "/settings/export"]) {
+    for (const path of ["/settings/account", "/settings/security", "/settings/notifications", "/settings/export"]) {
       await page.goto(path);
       await expectNoViolations(page);
     }

@@ -51,39 +51,19 @@ L'application mobile native (Expo, dossier `apps/mobile`) existe dans le monorep
 - [Docker](https://www.docker.com/) (pour faire tourner Supabase en local)
 - La [CLI Supabase](https://supabase.com/docs/guides/cli)
 
-### 1. Cloner le dépôt et installer les dépendances
+### Setup en une commande
 
 ```bash
 git clone <url-du-repo>
 cd FinTrack
-nvm use
-pnpm install
+./scripts/setup.sh
 ```
 
-### 2. Démarrer Supabase en local
+Ce script vérifie les prérequis (Node 22, pnpm, Docker, CLI Supabase), installe les dépendances, démarre Supabase en local (migrations + données de test appliquées automatiquement) et génère `apps/web/.env.local`. Il est idempotent — relançable sans risque à tout moment.
 
-```bash
-supabase start
-```
+> ⚠️ Toujours l'invoquer directement (`./scripts/setup.sh` ou `bash scripts/setup.sh`), jamais via un alias `pnpm run` : pnpm lui-même a besoin de Node ≥ 18 pour démarrer, alors que le Node par défaut du shell peut encore être une vieille version tant que `nvm use` (fait *à l'intérieur* du script) n'a pas tourné.
 
-Cette commande démarre PostgreSQL, l'interface Supabase Studio (`http://localhost:54323`) et Inbucket pour les emails de test (`http://localhost:54324`), puis applique les migrations du dossier `supabase/migrations`.
-
-À la fin de la commande, la CLI affiche une `API URL` et une `anon key` : vous en aurez besoin à l'étape suivante.
-
-### 3. Configurer les variables d'environnement
-
-```bash
-cp apps/web/.env.local.example apps/web/.env.local
-```
-
-Renseignez dans `apps/web/.env.local` les valeurs récupérées à l'étape précédente :
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key-affichée-par-supabase-start>
-```
-
-### 4. Lancer l'application
+Une fois le setup terminé :
 
 ```bash
 pnpm dev
@@ -92,6 +72,42 @@ pnpm dev
 L'application est accessible sur [http://localhost:3000](http://localhost:3000).
 
 > ⚠️ Ne lancez jamais `next build` pendant que `pnpm dev` tourne (même dossier `.next`) — cela corrompt les assets. Arrêtez le serveur de dev avant de builder.
+
+### Étapes manuelles (si vous préférez ne pas utiliser le script)
+
+<details>
+<summary>Détail des 4 étapes</summary>
+
+**1. Cloner et installer**
+```bash
+git clone <url-du-repo>
+cd FinTrack
+nvm use
+pnpm install
+```
+
+**2. Démarrer Supabase en local**
+```bash
+supabase start
+```
+Démarre PostgreSQL, Supabase Studio (`http://localhost:54323`) et Inbucket pour les emails de test (`http://localhost:54324`), puis applique les migrations du dossier `supabase/migrations`. À la fin, la CLI affiche une `API URL` et une `anon key`.
+
+**3. Configurer les variables d'environnement**
+```bash
+cp apps/web/.env.local.example apps/web/.env.local
+```
+Renseignez `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` avec les valeurs de l'étape précédente. Voir *Gestion des secrets* ci-dessous pour `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (optionnel, notifications push).
+
+**4. Lancer**
+```bash
+pnpm dev
+```
+
+</details>
+
+### Redémarrer l'environnement local
+
+Si l'app ne répond plus (serveur dev planté, Docker relancé…), `./scripts/dev-restart.sh` relance tout proprement (Docker → Supabase → `pnpm dev`) sans repasser par un setup complet. `./scripts/dev-restart.sh --reset` réinitialise en plus la base (`supabase db reset` — supprime les données locales).
 
 ---
 
@@ -130,16 +146,66 @@ Depuis `/settings/export`, exportez vos données au format CSV (transactions sur
 ## Commandes utiles
 
 ```bash
+./scripts/setup.sh                    # setup complet (première fois) — voir Installation
+./scripts/dev-restart.sh              # relance tout proprement (Docker → Supabase → dev server)
+./scripts/dev-restart.sh --reset      # idem + réinitialise la base (supabase db reset)
+
 pnpm dev                              # démarre l'application web en local
 pnpm build                            # build de tous les packages/apps
 pnpm test                             # tests unitaires (packages/core)
 pnpm lint                             # lint (core + web)
 pnpm typecheck                        # vérification des types (core + web)
+pnpm --filter @fintrack/web exec playwright test   # tests E2E (chromium + webkit)
 
 supabase start                        # démarre Supabase en local (Docker)
 supabase stop                         # arrête Supabase
 supabase db reset                     # réinitialise la base (migrations + données de test)
 ```
+
+---
+
+## Flux de travail Git
+
+Une branche par phase/tâche, mergée dans `main` une fois la CI verte — jamais de push direct sur `main`.
+
+```bash
+git checkout -b feat/nom-de-la-tache main   # ou fix/…, chore/…
+# développer, committer avec `type(scope): description` (Conventional Commits)
+git push -u origin feat/nom-de-la-tache
+gh pr create --fill
+gh pr checks --watch                        # attendre la CI
+# une fois verte : merge, puis mettre à jour CLAUDE.md si la tâche change l'archi/les conventions
+```
+
+Avant tout merge, valider la chaîne complète en local (mêmes commandes que la CI) :
+
+```bash
+rm -rf packages/core/dist apps/web/.next
+pnpm turbo lint typecheck --filter=@fintrack/core --filter=@fintrack/web
+NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key pnpm turbo build --filter=@fintrack/web
+pnpm --filter @fintrack/core test:coverage
+pnpm --filter @fintrack/web exec playwright test
+```
+
+Détail complet du workflow (ADR-014) et de l'historique des décisions techniques : [`CLAUDE.md`](./CLAUDE.md).
+
+---
+
+## Gestion des secrets
+
+**Aucun secret ne doit jamais être committé.** `apps/web/.env.local`, `supabase/functions/.env` et tout fichier `.env*` sont dans `.gitignore` — ne les retirez jamais de cette liste.
+
+| Variable | Où | Sensible ? | Notes |
+|---|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `apps/web/.env.local` | Non (clé publique) | Générées par `supabase start` en local ; en prod, valeurs du dashboard Supabase. |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `apps/web/.env.local` | Non (clé publique) | Notifications push — voir ci-dessous pour la générer. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Secrets Edge Functions (jamais côté client) | **Oui** | Bypass RLS — usage serveur uniquement. |
+| `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Secrets Edge Functions | **Oui** (la privée) | Voir génération ci-dessous. |
+| `project_url` / `service_role_key` | Supabase Vault (`vault.create_secret`) | **Oui** | Lus par les jobs `pg_cron` (`exchange-rates`, `send-notifications`) — no-op tant qu'absents, y compris en local. |
+
+**Générer une paire de clés VAPID** (notifications push — bibliothèque [`@negrel/webpush`](https://github.com/negrel/webpush), pas le CLI `web-push` npm classique dont le format de clé est incompatible) : voir [`CLAUDE.md`](./CLAUDE.md) (section Web Push) pour la recette exacte (Edge Function one-off jetable) et le format attendu de `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` (JWK JSON, pas les chaînes base64url du CLI npm).
+
+En production, les secrets serveur (`SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY`, secrets Vault…) se configurent dans le dashboard Supabase / les variables d'environnement Vercel — jamais dans un fichier commité.
 
 ---
 
