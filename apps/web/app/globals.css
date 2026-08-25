@@ -27,7 +27,10 @@
   --accent-foreground: oklch(0.28 0.02 78);
 
   --destructive: oklch(0.577 0.245 27.325);
-  --success: oklch(0.59 0.13 150);
+  /* L lowered from 0.59 to meet WCAG AA (4.5:1) at normal text sizes — 0.59
+     only cleared 3.72:1 against the page/card backgrounds (found via axe on
+     the transactions monthly-totals row, Phase 10). */
+  --success: oklch(0.5 0.13 150);
 
   --border: oklch(0.9 0.008 85);
   --input: oklch(0.9 0.008 85);

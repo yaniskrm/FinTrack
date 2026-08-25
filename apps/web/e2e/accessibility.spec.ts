@@ -48,11 +48,25 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expectNoViolations(page);
   });
 
-  test("settings: account, security, notifications, export", async ({ page }) => {
+  test("settings: account, security, categories, notifications, export", async ({ page }) => {
     await signUpAndLogIn(page);
-    for (const path of ["/settings/account", "/settings/security", "/settings/notifications", "/settings/export"]) {
+    for (const path of [
+      "/settings/account",
+      "/settings/security",
+      "/settings/categories",
+      "/settings/notifications",
+      "/settings/export",
+    ]) {
       await page.goto(path);
       await expectNoViolations(page);
     }
+  });
+
+  test("category dialog", async ({ page }) => {
+    await signUpAndLogIn(page);
+    await page.goto("/settings/categories");
+    await page.getByRole("button", { name: "Ajouter" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoViolations(page);
   });
 });

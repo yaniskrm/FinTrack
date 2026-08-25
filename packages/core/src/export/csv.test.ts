@@ -46,7 +46,7 @@ describe("toCsv", () => {
   });
 });
 
-const category: Category = { id: "cat1", workspace_id: "ws1", name: "Alimentation", icon: "🛒", color: "#fff", is_default: true };
+const category: Category = { id: "cat1", workspace_id: "ws1", name: "Alimentation", icon: "🛒", color: "#fff", is_default: true, hidden: false };
 
 describe("transactionsToCsv", () => {
   const tx: Transaction = {
@@ -58,9 +58,13 @@ describe("transactionsToCsv", () => {
     amount_eur: 42,
     type: "expense",
     label: "Courses",
+    merchant: null,
     note: null,
     date: "2026-01-15",
     recurring_rule_id: null,
+    reimbursement_status: "none",
+    reimbursement_contact: null,
+    settled_transaction_id: null,
     created_at: "2026-01-15T00:00:00Z",
     updated_at: "2026-01-15T00:00:00Z",
   };

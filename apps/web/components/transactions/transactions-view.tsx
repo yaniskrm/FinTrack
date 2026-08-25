@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DefaultValues } from "react-hook-form";
-import { Copy, Pencil, Plus, Trash2 } from "lucide-react";
-import { formatCurrency } from "@fintrack/core";
-import type { Currency, TransactionFormValues } from "@fintrack/core";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Pencil, Plus, Trash2 } from "lucide-react";
+import { calculateOutstandingReimbursements, calculateTotals, formatCurrency } from "@fintrack/core";
+import type { Currency, Transaction, TransactionFormValues } from "@fintrack/core";
 import {
   useCategories,
   useDeleteTransaction,
+  useSettleReimbursement,
   useTransactions,
 } from "../../hooks/use-transactions";
 import type { CategoryRow, TransactionRow } from "../../lib/transactions/types";
@@ -28,9 +29,12 @@ function toFormValues(row: TransactionRow): DefaultValues<TransactionFormValues>
     currency: row.currency as Currency,
     type: row.type,
     label: row.label,
+    merchant: row.merchant,
     categoryId: row.category_id,
     note: row.note,
     date: row.date,
+    markAsReimbursable: row.reimbursement_status !== "none",
+    reimbursementContact: row.reimbursement_contact,
   };
 }
 
@@ -42,23 +46,56 @@ function formatDate(iso: string): string {
   });
 }
 
+function monthKey(iso: string): string {
+  return iso.slice(0, 7); // "YYYY-MM"
+}
+
+function monthLabel(key: string): string {
+  return new Date(`${key}-01T00:00:00`).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+}
+
+function shiftMonth(key: string, delta: number): string {
+  const [year, month] = key.split("-").map(Number);
+  const d = new Date(Date.UTC(year ?? 2026, (month ?? 1) - 1 + delta, 1));
+  return d.toISOString().slice(0, 7);
+}
+
 export function TransactionsView({
   initialTransactions,
   initialCategories,
+  defaultCurrency = "EUR",
 }: {
   initialTransactions: TransactionRow[];
   initialCategories: CategoryRow[];
+  defaultCurrency?: Currency;
 }) {
   const { data: transactions } = useTransactions(initialTransactions);
   const { data: categories } = useCategories(initialCategories);
   const deleteTransaction = useDeleteTransaction();
+  const settleReimbursement = useSettleReimbursement();
 
   const [dialog, setDialog] = useState<DialogState>({ open: false });
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [month, setMonth] = useState(() => monthKey(new Date().toISOString()));
 
   const categoryById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories],
+  );
+
+  const monthTransactions = useMemo(
+    () => transactions.filter((tx) => monthKey(tx.date) === month),
+    [transactions, month],
+  );
+
+  const monthTotals = useMemo(
+    () => calculateTotals(monthTransactions as unknown as Transaction[]),
+    [monthTransactions],
+  );
+
+  const reimbursements = useMemo(
+    () => calculateOutstandingReimbursements(transactions as unknown as Transaction[]),
+    [transactions],
   );
 
   // Keyboard shortcut: "n" opens the quick-entry dialog (unless typing).
@@ -102,9 +139,94 @@ export function TransactionsView({
         </Button>
       </div>
 
-      {transactions.length === 0 ? (
+      {reimbursements.items.length > 0 && (
+        <Card className="gap-3 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Remboursements en attente</p>
+            <p className="text-sm font-semibold tabular-nums text-foreground">
+              {formatCurrency(reimbursements.totalOutstandingEur, "EUR")}
+            </p>
+          </div>
+          <ul className="space-y-1.5">
+            {reimbursements.items.map(({ transaction: tx }) => (
+              <li key={tx.id} className="flex items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 truncate text-muted-foreground">
+                  {tx.label}
+                  {tx.reimbursement_contact ? ` · ${tx.reimbursement_contact}` : ""}
+                </span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="tabular-nums text-foreground">{formatCurrency(tx.amount_eur, "EUR")}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={settleReimbursement.isPending}
+                    onClick={() => {
+                      settleReimbursement.mutate(tx.id);
+                    }}
+                  >
+                    Marquer remboursé
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <div className="flex items-center justify-between gap-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Mois précédent"
+          onClick={() => {
+            setMonth((m) => shiftMonth(m, -1));
+          }}
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <p className="text-sm font-medium capitalize">{monthLabel(month)}</p>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Mois suivant"
+          onClick={() => {
+            setMonth((m) => shiftMonth(m, 1));
+          }}
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div>
+          <p className="text-xs text-muted-foreground">Revenus</p>
+          <p className="text-sm font-semibold tabular-nums text-success">
+            {formatCurrency(monthTotals.totalIncome, "EUR")}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Dépenses</p>
+          <p className="text-sm font-semibold tabular-nums">{formatCurrency(monthTotals.totalExpenses, "EUR")}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted-foreground">Solde net</p>
+          <p
+            className={cn(
+              "text-sm font-semibold tabular-nums",
+              monthTotals.netBalance >= 0 ? "text-success" : "text-destructive",
+            )}
+          >
+            {formatCurrency(monthTotals.netBalance, "EUR")}
+          </p>
+        </div>
+      </div>
+
+      {monthTransactions.length === 0 ? (
         <Card className="items-center gap-3 py-12 text-center">
-          <p className="text-sm text-muted-foreground">Aucune transaction pour le moment.</p>
+          <p className="text-sm text-muted-foreground">Aucune transaction ce mois-ci.</p>
           <Button
             variant="outline"
             onClick={() => {
@@ -112,12 +234,12 @@ export function TransactionsView({
             }}
           >
             <Plus className="size-4" />
-            Ajouter la première
+            Ajouter
           </Button>
         </Card>
       ) : (
         <Card className="gap-0 divide-y py-0">
-          {transactions.map((tx) => {
+          {monthTransactions.map((tx) => {
             const category = tx.category_id ? categoryById.get(tx.category_id) : undefined;
             const sign = tx.type === "expense" ? "-" : tx.type === "income" ? "+" : "";
             return (
@@ -131,7 +253,24 @@ export function TransactionsView({
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{tx.label}</p>
+                  <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                    {tx.label}
+                    {tx.reimbursement_status !== "none" && (
+                      <span
+                        aria-label={
+                          tx.reimbursement_status === "pending" ? "En attente de remboursement" : "Remboursé"
+                        }
+                        title={tx.reimbursement_status === "pending" ? "En attente de remboursement" : "Remboursé"}
+                        className={cn(
+                          "inline-flex size-4 shrink-0 items-center justify-center rounded-full",
+                          tx.reimbursement_status === "settled" && "text-success",
+                        )}
+                        style={tx.reimbursement_status === "pending" ? { color: "var(--chart-3)" } : undefined}
+                      >
+                        <ArrowLeftRight className="size-3" />
+                      </span>
+                    )}
+                  </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {category?.name ?? "Sans catégorie"} · {formatDate(tx.date)}
                   </p>
@@ -234,6 +373,8 @@ export function TransactionsView({
           setDialog((prev) => ({ ...prev, open }));
         }}
         categories={categories}
+        transactions={transactions}
+        defaultCurrency={defaultCurrency}
         editId={dialog.editId}
         initialValues={dialog.initialValues}
       />

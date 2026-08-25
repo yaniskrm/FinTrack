@@ -49,8 +49,11 @@ export async function createTransactionAction(values: TransactionFormValues): Pr
       rate_approximate: frozen.approximate,
       type: input.type,
       label: input.label,
+      merchant: input.merchant,
       note: input.note,
       date: input.date,
+      reimbursement_status: input.markAsReimbursable ? "pending" : "none",
+      reimbursement_contact: input.markAsReimbursable ? input.reimbursementContact : null,
     })
     .select("*")
     .single();
@@ -77,6 +80,24 @@ export async function updateTransactionAction(
   }
 
   const supabase = await createClient();
+
+  // A settled reimbursement already has its matching income transaction
+  // (settled_transaction_id) — the edit form has no way to represent that
+  // third state (its checkbox only toggles pending/none), so never let an
+  // edit silently downgrade a settled transaction back to pending/none.
+  const { data: existing } = await supabase
+    .from("transactions")
+    .select("reimbursement_status")
+    .eq("id", id)
+    .maybeSingle();
+  const reimbursementFields =
+    existing?.reimbursement_status === "settled"
+      ? {}
+      : {
+          reimbursement_status: input.markAsReimbursable ? ("pending" as const) : ("none" as const),
+          reimbursement_contact: input.markAsReimbursable ? input.reimbursementContact : null,
+        };
+
   const { data, error } = await supabase
     .from("transactions")
     .update({
@@ -87,8 +108,10 @@ export async function updateTransactionAction(
       rate_approximate: frozen.approximate,
       type: input.type,
       label: input.label,
+      merchant: input.merchant,
       note: input.note,
       date: input.date,
+      ...reimbursementFields,
     })
     .eq("id", id)
     .select("*")
@@ -98,6 +121,70 @@ export async function updateTransactionAction(
     return { ok: false, error: "Mise à jour impossible." };
   }
   return { ok: true, transaction: data };
+}
+
+/**
+ * Settles a pending reimbursement: creates the matching income transaction
+ * (spec Module 9 — "crée une transaction de revenu correspondante") rather
+ * than mutating the original expense, so its own amount_eur/history stays
+ * exactly as entered. Filed under the workspace's "Remboursements" default
+ * category when it exists (best-effort — a workspace that renamed/hid it
+ * just gets an uncategorized income row instead of a hard failure).
+ */
+export async function settleReimbursementAction(id: string): Promise<MutationResult> {
+  const supabase = await createClient();
+
+  const { data: original, error: fetchError } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (fetchError || !original) {
+    return { ok: false, error: "Transaction introuvable." };
+  }
+  if (original.reimbursement_status !== "pending") {
+    return { ok: false, error: "Cette transaction n'est pas en attente de remboursement." };
+  }
+
+  const { data: refundCategory } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("workspace_id", original.workspace_id)
+    .eq("name", "Remboursements")
+    .maybeSingle();
+
+  const { data: incomeTx, error: insertError } = await supabase
+    .from("transactions")
+    .insert({
+      workspace_id: original.workspace_id,
+      category_id: refundCategory?.id ?? null,
+      amount: original.amount,
+      currency: original.currency,
+      amount_eur: original.amount_eur,
+      rate_approximate: original.rate_approximate,
+      type: "income",
+      label: `Remboursement — ${original.label}`,
+      date: new Date().toISOString().slice(0, 10),
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    return { ok: false, error: "Création de la transaction de remboursement impossible." };
+  }
+
+  const { data: settled, error: settleError } = await supabase
+    .from("transactions")
+    .update({ reimbursement_status: "settled", settled_transaction_id: incomeTx.id })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (settleError) {
+    return { ok: false, error: "Impossible de marquer la transaction comme remboursée." };
+  }
+  return { ok: true, transaction: settled };
 }
 
 export async function deleteTransactionAction(id: string): Promise<DeleteResult> {

@@ -17,9 +17,12 @@ export const transactionInputSchema = z.object({
   currency: currencySchema,
   type: transactionTypeSchema,
   label: z.string().trim().min(1, "Libellé requis").max(100, "Libellé trop long (100 max)"),
+  merchant: z.string().trim().max(100, "Enseigne trop longue (100 max)").nullable(),
   categoryId: z.uuid().nullable(),
   note: z.string().trim().max(500, "Note trop longue (500 max)").nullable(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide (AAAA-MM-JJ)"),
+  markAsReimbursable: z.boolean(),
+  reimbursementContact: z.string().trim().max(100, "Contact trop long (100 max)").nullable(),
 });
 
 export type TransactionFormValues = z.infer<typeof transactionInputSchema>;

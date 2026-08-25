@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import type { Currency } from "@fintrack/core";
 import { createClient } from "../../../../lib/supabase/server";
 import {
   Card,
@@ -10,6 +11,7 @@ import {
 } from "../../../../components/ui/card";
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { DefaultCurrencyForm } from "./DefaultCurrencyForm";
 
 export const metadata: Metadata = {
   title: "Compte — FinTrack",
@@ -24,6 +26,12 @@ export default async function AccountSettingsPage() {
   if (!user?.email) {
     redirect("/login");
   }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("default_currency")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return (
     <>
@@ -52,6 +60,18 @@ export default async function AccountSettingsPage() {
         </CardHeader>
         <CardContent>
           <ChangePasswordForm />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Devise par défaut</CardTitle>
+          <CardDescription>
+            Pré-remplit la devise à chaque nouvelle transaction — pratique en voyage.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DefaultCurrencyForm initialCurrency={(profile?.default_currency as Currency | undefined) ?? "EUR"} />
         </CardContent>
       </Card>
     </>

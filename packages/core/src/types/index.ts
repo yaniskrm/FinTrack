@@ -28,6 +28,8 @@ export type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 
 export type TransactionType = "expense" | "income" | "transfer";
 
+export type ReimbursementStatus = "none" | "pending" | "settled";
+
 export interface Transaction {
   id: string;
   workspace_id: string;
@@ -37,9 +39,13 @@ export interface Transaction {
   amount_eur: number;      // frozen at entry time — NEVER recalculated
   type: TransactionType;
   label: string;
+  merchant: string | null;
   note: string | null;
   date: string;            // ISO 8601 date string
   recurring_rule_id: string | null;
+  reimbursement_status: ReimbursementStatus;
+  reimbursement_contact: string | null;
+  settled_transaction_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +78,7 @@ export interface Category {
   icon: string;
   color: string;
   is_default: boolean;
+  hidden: boolean;
 }
 
 // ─── Budget ───────────────────────────────────────────────────────────────────

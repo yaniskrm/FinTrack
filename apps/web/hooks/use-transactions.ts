@@ -7,6 +7,7 @@ import { fetchCategories, fetchTransactions } from "../lib/transactions/queries"
 import {
   createTransactionAction,
   deleteTransactionAction,
+  settleReimbursementAction,
   updateTransactionAction,
 } from "../lib/transactions/actions";
 import type { CategoryRow, TransactionRow } from "../lib/transactions/types";
@@ -34,10 +35,14 @@ function optimisticRow(values: TransactionFormValues): TransactionRow {
     amount_eur: values.amount,
     type: values.type,
     label: values.label,
+    merchant: values.merchant,
     note: values.note,
     date: values.date,
     rate_approximate: false,
     recurring_rule_id: null,
+    reimbursement_status: values.markAsReimbursable ? "pending" : "none",
+    reimbursement_contact: values.markAsReimbursable ? values.reimbursementContact : null,
+    settled_transaction_id: null,
     created_at: now,
     updated_at: now,
   };
@@ -107,8 +112,15 @@ export function useUpdateTransaction() {
               amount_eur: values.amount,
               type: values.type,
               label: values.label,
+              merchant: values.merchant,
               note: values.note,
               date: values.date,
+              ...(row.reimbursement_status === "settled"
+                ? {}
+                : {
+                    reimbursement_status: values.markAsReimbursable ? ("pending" as const) : ("none" as const),
+                    reimbursement_contact: values.markAsReimbursable ? values.reimbursementContact : null,
+                  }),
             }
           : row,
       );
@@ -155,6 +167,28 @@ export function useDeleteTransaction() {
     },
     onSuccess: () => {
       toast.success("Transaction supprimée.");
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
+    },
+  });
+}
+
+/** Marks a pending reimbursement settled — creates the matching income transaction server-side. */
+export function useSettleReimbursement() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await settleReimbursementAction(id);
+      if (!result.ok) throw new Error(result.error);
+      return result.transaction;
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Échec du marquage comme remboursé.");
+    },
+    onSuccess: () => {
+      toast.success("Marqué comme remboursé.");
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: TRANSACTIONS_KEY });
