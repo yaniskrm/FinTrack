@@ -80,6 +80,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          hidden: boolean
           icon: string
           id: string
           is_default: boolean
@@ -89,6 +90,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          hidden?: boolean
           icon?: string
           id?: string
           is_default?: boolean
@@ -98,6 +100,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          hidden?: boolean
           icon?: string
           id?: string
           is_default?: boolean
@@ -426,9 +429,13 @@ export type Database = {
           date: string
           id: string
           label: string
+          merchant: string | null
           note: string | null
           rate_approximate: boolean
           recurring_rule_id: string | null
+          reimbursement_contact: string | null
+          reimbursement_status: Database["public"]["Enums"]["reimbursement_status"]
+          settled_transaction_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
           workspace_id: string
@@ -442,9 +449,13 @@ export type Database = {
           date: string
           id?: string
           label: string
+          merchant?: string | null
           note?: string | null
           rate_approximate?: boolean
           recurring_rule_id?: string | null
+          reimbursement_contact?: string | null
+          reimbursement_status?: Database["public"]["Enums"]["reimbursement_status"]
+          settled_transaction_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           workspace_id: string
@@ -458,9 +469,13 @@ export type Database = {
           date?: string
           id?: string
           label?: string
+          merchant?: string | null
           note?: string | null
           rate_approximate?: boolean
           recurring_rule_id?: string | null
+          reimbursement_contact?: string | null
+          reimbursement_status?: Database["public"]["Enums"]["reimbursement_status"]
+          settled_transaction_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           workspace_id?: string
@@ -485,6 +500,13 @@ export type Database = {
             columns: ["recurring_rule_id"]
             isOneToOne: false
             referencedRelation: "recurring_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_settled_transaction_id_fkey"
+            columns: ["settled_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
           {
@@ -578,6 +600,7 @@ export type Database = {
       investment_type: "etf" | "stock" | "scpi" | "savings" | "crypto" | "other"
       member_role: "owner" | "member"
       recurring_frequency: "daily" | "weekly" | "monthly" | "yearly"
+      reimbursement_status: "none" | "pending" | "settled"
       transaction_type: "expense" | "income" | "transfer"
     }
     CompositeTypes: {
@@ -713,6 +736,7 @@ export const Constants = {
       investment_type: ["etf", "stock", "scpi", "savings", "crypto", "other"],
       member_role: ["owner", "member"],
       recurring_frequency: ["daily", "weekly", "monthly", "yearly"],
+      reimbursement_status: ["none", "pending", "settled"],
       transaction_type: ["expense", "income", "transfer"],
     },
   },

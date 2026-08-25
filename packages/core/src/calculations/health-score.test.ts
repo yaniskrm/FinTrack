@@ -14,6 +14,10 @@ const makeTx = (type: "income" | "expense", amount_eur: number): Transaction => 
   note: null,
   date: "2024-01-15",
   recurring_rule_id: null,
+  merchant: null,
+  reimbursement_status: "none",
+  reimbursement_contact: null,
+  settled_transaction_id: null,
   created_at: "2024-01-15T00:00:00Z",
   updated_at: "2024-01-15T00:00:00Z",
 });

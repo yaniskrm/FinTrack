@@ -6,9 +6,12 @@ const valid = {
   currency: "EUR",
   type: "expense",
   label: "Café",
+  merchant: null,
   categoryId: null,
   note: null,
   date: "2026-08-22",
+  markAsReimbursable: false,
+  reimbursementContact: null,
 };
 
 describe("transactionInputSchema", () => {
@@ -52,5 +55,24 @@ describe("transactionInputSchema", () => {
     expect(transactionInputSchema.safeParse({ ...valid, categoryId: null, note: null }).success).toBe(
       true,
     );
+  });
+
+  it("accepts a reimbursable transaction with a contact", () => {
+    const result = transactionInputSchema.safeParse({
+      ...valid,
+      markAsReimbursable: true,
+      reimbursementContact: "Alex",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a null merchant and reimbursement contact", () => {
+    expect(
+      transactionInputSchema.safeParse({ ...valid, merchant: null, reimbursementContact: null }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a merchant longer than 100 chars", () => {
+    expect(transactionInputSchema.safeParse({ ...valid, merchant: "x".repeat(101) }).success).toBe(false);
   });
 });
