@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : v1.1 livrée (web push, PWA, README, setup 1-commande), mergée dans `main`, CI verte. v1.0.0 taguée, v1.1 en cours de tag — backlog restant : v2 (voir Roadmap).**
+**Phase courante : Phase 10 — Frictions du quotidien livrée (catégories personnalisables, détection auto de catégorie, remboursements, vue mensuelle, mode pays), mergée dans `main`, CI verte. v1.0.0 + v1.1 taguées — backlog restant : v2 (voir Roadmap).**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -46,7 +46,7 @@ fintrack/
 │   ├── web/                      ← Next.js 15 — LA cible v1
 │   │   ├── app/
 │   │   │   ├── (auth)/           ← login, signup, forgot-password, reset-password
-│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, investments, settings/{account,security,export} (protégé)
+│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, investments, settings/{account,security,categories,notifications,export} (protégé)
 │   │   │   ├── auth/callback/    ← échange du code PKCE (email + reset)
 │   │   │   ├── mfa/              ← step-up 2FA au login
 │   │   │   ├── privacy/          ← RGPD (template, à faire relire juridiquement)
@@ -59,25 +59,27 @@ fintrack/
 │   │   │   ├── budgets/          ← dialog + liste (barres de progression)
 │   │   │   ├── goals/            ← dialog + liste (jauges de progression)
 │   │   │   ├── investments/      ← dialogs (position/valorisation/clôture), allocation donuts, courbe de performance
-│   │   │   ├── settings/         ← export (CSV/JSON/PDF), settings-nav (Compte/Sécurité/Export)
+│   │   │   ├── categories/       ← dialog (nom/icône/couleur) + liste (visibles/masquées) — Phase 10
+│   │   │   ├── settings/         ← export (CSV/JSON/PDF), settings-nav (Compte/Sécurité/Catégories/Notifications/Export), push-notifications-card
 │   │   │   ├── app-shell, logo, theme-provider, theme-toggle, providers, IdleTimeout
-│   │   ├── hooks/                ← use-transactions, use-recurring, use-budgets, use-goals, use-investments (optimistes)
-│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions incl. update email/change password, mfa), transactions, recurring, budgets, goals, investments, export (queries/csv/json/pdf/download), dashboard, currencies, env, utils
+│   │   ├── hooks/                ← use-transactions (+ catégories, remboursements), use-recurring, use-budgets, use-goals, use-investments, use-categories (optimistes)
+│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions incl. update email/change password, mfa), transactions (+ merchant/remboursement), recurring, budgets, goals, investments, categories, profile (devise par défaut), export (queries/csv/json/pdf/download), dashboard, currencies, push, env, utils
 │   │   ├── e2e/                  ← Playwright (chromium + webkit) : auth, transactions, budget/goals, export, mfa/AAL2, accessibilité (axe-core)
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 169 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 209 tests Vitest.
 │   │   └── src/
-│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique)
+│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique), reimbursements (solde en attente)
+│   │       ├── categorization/   ← suggestCategoryId — détection heuristique déterministe (Phase 10, voir ADR-019)
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
 │   │       ├── export/           ← CSV (RFC 4180) + JSON (sauvegarde complète RGPD) — transactions/budgets/investments
-│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment-schema) + impératifs (auth incl. update email/password, mfa, transaction, recurring)
+│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment/category-schema) + impératifs (auth incl. update email/password, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
 ├── supabase/
-│   ├── migrations/               ← Schéma versionné (11 migrations)
+│   ├── migrations/               ← Schéma versionné (12 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
 │   │   └── send-notifications/   ← Cron quotidien 08h UTC : Web Push (VAPID) pour les récurrences J-3/J-1/J0 ✅
@@ -93,8 +95,8 @@ fintrack/
 workspaces          ← Unité de partage (1 par user en v1, N en v2)
 workspace_members   ← workspace_id + user_id + role + accepted_at
 profiles            ← Extension auth.users (default_currency, locale…)
-categories          ← Personnalisables par workspace (14 par défaut, dont Sport)
-transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate)
+categories          ← Personnalisables par workspace (14 par défaut, dont Sport ; + hidden depuis Phase 10)
+transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate, + merchant, + reimbursement_status/contact/settled_transaction_id depuis Phase 10)
 recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅
 exchange_rates      ← Taux globaux (165 devises), écrits par l'Edge Function uniquement
 budgets             ← Enveloppes par catégorie, alertes 80%/100% ✅
@@ -143,9 +145,9 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **169 tests actuellement, tous verts, 98,5 % de couverture.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **209 tests actuellement, tous verts, 98,7 % de couverture.**
 - Coverage cible 80 % sur `packages/core`.
-- `apps/web` : E2E Playwright (`apps/web/e2e/`, chromium + webkit) — signup/login, saisie rapide, budget/objectif, les 3 formats d'export, cycle complet 2FA/AAL2 (codes TOTP réels via `otpauth`). Audit d'accessibilité intégré : chaque page/dialog clé est scannée par `@axe-core/playwright` (WCAG 2 A/AA) dans la même suite — c'est le mécanisme d'audit, pas une relecture manuelle. Tourne en CI (job `E2E`) contre Supabase local + un vrai build de prod.
+- `apps/web` : E2E Playwright (`apps/web/e2e/`, chromium + webkit) — signup/login, saisie rapide, budget/objectif, les 3 formats d'export, cycle complet 2FA/AAL2 (codes TOTP réels via `otpauth`), catégories (CRUD + masquage), remboursement (marquer/régler), navigation mensuelle, mode pays (devise par défaut → pré-remplissage). Audit d'accessibilité intégré : chaque page/dialog clé est scannée par `@axe-core/playwright` (WCAG 2 A/AA) dans la même suite — c'est le mécanisme d'audit, pas une relecture manuelle. Tourne en CI (job `E2E`) contre Supabase local + un vrai build de prod.
 
 ### Récurrences (Phase 6)
 - Une `recurring_rule` **n'est pas** une transaction — elle en **génère**. Fonction SQL pure `generate_due_recurring_transactions()` (`supabase/functions` non, c'est une fonction PostgreSQL dans une migration), appelée quotidiennement à 05h00 UTC par `pg_cron` (appel direct, pas de `pg_net` car interne à la DB).
@@ -161,6 +163,13 @@ workspace_id IN (
 - Suggestion de budget = moyenne des 3 mois calendaires **précédents** (exclut le mois en cours, forcément partiel).
 - Contribution mensuelle nécessaire d'un objectif = `(cible − actuel) / mois restants`, mois restants planchés à 1. Statut `overdue` si échéance dépassée sans avoir atteint la cible (= alerte « contribution insuffisante »).
 - Éditer un budget/objectif ne touche jamais `created_at` ; éditer une règle récurrente reste le seul cas où un champ « curseur système » (`next_occurrence`) est protégé contre l'édition.
+
+### Catégories, détection & remboursements (Phase 10)
+- **Catégories** : jamais de suppression depuis l'UI (orphelinerait `transactions.category_id`, même si la FK a un `ON DELETE SET NULL`) — seulement `hidden` (masquage), qui les retire des sélecteurs sans toucher l'historique. Nom/icône/couleur éditables pour toute catégorie, y compris les catégories par défaut (`is_default`).
+- **Détection de catégorie** (`suggestCategoryId`, `packages/core/src/categorization/suggest.ts`) : (1) correspondance exacte sur l'historique du même marchand/libellé (signal le plus fort), (2) sinon règles de mots-clés statiques matchées contre les **noms** de catégories du workspace (pas des IDs fixes, car personnalisables) ; renvoie `null` plutôt que de deviner faux. **Aucune dépendance IA/LLM** — voir ADR-019.
+- **Remboursements** : `reimbursement_status` (`none`/`pending`/`settled`) sur `transactions`. Marquer réglé (`settleReimbursementAction`) crée une **nouvelle transaction de revenu liée** (`settled_transaction_id`) plutôt que de muter la dépense d'origine — préserve son `amount_eur` gelé (cohérent avec ADR-005). Éditer une transaction réglée ne peut jamais la faire redescendre en `pending`/`none` (le formulaire d'édition n'a pas de case à cocher pour ce 3ᵉ état).
+- **Mode pays** : `profiles.default_currency` pré-remplit la devise du formulaire de saisie rapide (`updateDefaultCurrencyAction`, réglable depuis `/settings/account`) — n'affecte que les *nouvelles* transactions, jamais l'historique.
+- **Vue mensuelle** : navigation M-1/M+1 sur `/transactions` (state client, pas d'URL — pas de deep-link vers un mois précis pour l'instant), totaux agrégés via `calculateTotals` déjà existant (Phase 5).
 
 ---
 
@@ -273,11 +282,13 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 5. **Budget** — CRUD, barres de progression 80%/100%, suggestion 3 mois, taux d'épargne ✅
 6. **Investissements** — CRUD positions, P&L latent/réalisé, allocation par classe/devise, courbe de valorisation, encart patrimoine dashboard ✅
 7. **Objectifs** — CRUD, jauge, contribution mensuelle nécessaire, alerte échéance dépassée ✅
-8. **Multi-devises** — 165 devises, taux gelé, flag approximatif ✅
-9. **Remboursements** — catégorie présente, workflow à préciser
+8. **Multi-devises** — 165 devises, taux gelé, flag approximatif ; mode pays (devise par défaut du workspace) ✅
+9. **Remboursements** — marquer une dépense « à rembourser », règlement via transaction de revenu liée, encart « en attente » sur `/transactions` ✅
 10. **Export** — CSV (transactions, période paramétrable), JSON (sauvegarde complète, portabilité RGPD), PDF (rapport mensuel — résumé, répartition catégories, budgets, transactions) ✅
 11. **Réglages du compte** — changement d'email (double confirmation Supabase), changement de mot de passe (ré-authentification), gestion 2FA TOTP ✅
-12. **Module IA** — v2
+12. **Catégories** — création/édition (nom/icône/couleur)/masquage, détection automatique déterministe à la saisie ✅
+13. **Vue mensuelle** — navigation M-1/M+1 + totaux agrégés sur `/transactions` ✅
+14. **Module IA** — v2
 
 ---
 
@@ -297,8 +308,9 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 **v1.0.0 taguée.**
 
 - **v1.1** ✅ Fermeture de dette technique + Developer Experience — Web Push effectif (Edge Function `send-notifications` réécrite, VAPID via `@negrel/webpush`), PWA (manifest, icônes, service worker), page Réglages → Notifications, `README.md`, `scripts/setup.sh` (setup 1-commande).
+- **Phase 10** ✅ Frictions du quotidien — catégories personnalisables (CRUD + masquage), détection automatique de catégorie (heuristique déterministe, sans IA), workflow de remboursement (marquer/régler), vue mensuelle des transactions (M-1/M+1 + totaux), mode pays (devise par défaut).
 
-Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 10 planifiée pour l'instant.
+Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 11 planifiée pour l'instant.
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
 
@@ -323,6 +335,7 @@ Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 10 planifi
 - **ADR-016** *(Phase 9)* : export PDF **généré côté client** (jsPDF, tableaux + un histogramme dessiné avec les primitives du package) plutôt qu'en finalisant le stub Edge Function `export-pdf`. Aucun round-trip serveur, aucun secret à gérer pour cette fonctionnalité, et surtout testable en E2E dans le même run que le reste (le stub, jamais implémenté, est supprimé — cf. Pièges connus pour la découverte qui a motivé ce choix). Le rapport est volontairement textuel/tabulaire plutôt qu'une capture des graphes Recharts du dashboard (pas de dépendance html2canvas/rasterisation SVG).
 - **ADR-017** *(Phase 9)* : audit d'accessibilité fait via **scans automatisés `@axe-core/playwright`** intégrés à la suite E2E (chaque page/dialog clé, tags `wcag2a`/`wcag2aa`), pas une relecture manuelle du code. A immédiatement trouvé un vrai échec de contraste WCAG AA (`--muted-foreground` à 4,39:1, corrigé à 4,5:1+) qu'une relecture aurait pu manquer — preuve que l'automatisation est la bonne méthode ici, à reconduire pour toute nouvelle page.
 - **ADR-018** *(v1.1)* : Web Push implémenté avec **`@negrel/webpush`** (Web Crypto API native, importé depuis GitHub raw — `jsr:@negrel/webpush` a renvoyé 403 en environnement Claude Code, contourné via `https://raw.githubusercontent.com/negrel/webpush/master/mod.ts`) plutôt que le package npm `web-push` (import `https://esm.sh/web-push@…?target=deno`). **Vérifié en local via `supabase functions serve`** : `web-push` échoue avec `Not implemented: crypto.ECDH` dans l'Edge Runtime (basé sur Node `crypto`, absent de ce runtime Deno) ; `@negrel/webpush` fonctionne (basé sur `crypto.subtle`, disponible). Conséquence assumée : les clés VAPID sont des paires JWK propres à cette librairie (générées via son propre script, pas via le CLI `web-push`), voir *Web Push — génération des clés VAPID* ci-dessus. `send-notifications` a été entièrement réécrite (le stub précédent visait Expo Push, pertinent pour le mobile v2, pas le web).
+- **ADR-019** *(Phase 10)* : remboursement réglé = **nouvelle transaction de revenu liée** (`settled_transaction_id`), pas une mutation de la dépense d'origine. Alternative rejetée : changer le `type`/`amount` de la transaction existante — aurait cassé son `amount_eur` gelé (ADR-005) et son historique d'édition. Détection de catégorie volontairement **sans IA/LLM** (règles de mots-clés + historique du marchand) — déterministe, testable à 100 % en Vitest, aucune latence/coût d'appel externe, et le brief produit l'excluait explicitement.
 
 ---
 
@@ -343,6 +356,8 @@ Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 10 planifi
 - **Une redirection `redirect()` dans une Server Action ne « chaîne » pas de façon fiable à travers une redirection du middleware côté client.** `signInAction` redirigeait toujours vers `/dashboard` en comptant sur le middleware pour rediriger ensuite vers `/mfa` si un step-up AAL2 était en attente — le serveur calculait bien la bonne destination et servait `/mfa`, mais l'URL du navigateur restait bloquée sur `/dashboard`. Fix : l'action qui vient d'authentifier l'utilisateur doit décider elle-même de la destination (appeler `getAuthenticatorAssuranceLevel()` et rediriger directement vers `/mfa` si nécessaire), pas déléguer au prochain aller-retour.
 - **Dans les dialogs Radix (bouton d'en-tête « Ajouter » qui ouvre + bouton de soumission du formulaire dans le dialog) : les deux boutons partagent le même nom accessible.** `page.getByRole("button", { name: "Ajouter" })` non scopé est ambigu pendant que le dialog est ouvert — a cassé les tests E2E (dialog qui ne se referme jamais). Toujours scoper le clic de soumission : `page.getByRole("dialog").getByRole("button", { name: "..." })`.
 - **CI E2E : épingler la CLI Supabase (`supabase/setup-cli@v1` → `version: 2.75.0`), jamais `latest`.** Avec `latest`, `createGoalAction`/`createBudgetAction`/`createTransactionAction` échouaient de façon reproductible avec « Espace introuvable » juste après un signup frais (le trigger `on_auth_user_created` semblait ne pas avoir fini de créer le workspace), uniquement en CI — jamais en local, y compris en reproduisant un `supabase db reset` à froid en boucle. Ne monter la version qu'après l'avoir revérifiée manuellement.
+- **Le build « env placeholder » (étape CI-équivalente de la validation locale) contamine ensuite tout run E2E local si on réutilise le même `.next`.** Next.js inline les variables `NEXT_PUBLIC_*` dans le bundle **à la compilation**, y compris côté Server Actions (pas seulement le bundle navigateur) — un `pnpm turbo build` lancé avec `NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co` produit un `.next` qui pointe vers ce faux host, même en `next start`. Le `webServer` de Playwright (`reuseExistingServer: true` en local) peut alors réutiliser silencieusement ce serveur cassé. **Toujours refaire un `rm -rf apps/web/.next && pnpm --filter @fintrack/web build` sans l'override placeholder juste avant `pnpm exec playwright test`** — l'étape 3 (build placeholder) et l'étape 5 (E2E) de la séquence de validation ne doivent jamais partager le même `.next`.
+- **Contraste WCAG AA du token `--success` retombé sous le seuil à l'usage réel (Phase 10).** `--success` avait été calibré pour du texte large (`text-xl`, barre de progression budget) ; la nouvelle ligne de totaux mensuels l'utilisait en `text-sm` (14px, seuil 4,5:1, pas 3:1) et n'atteignait que 3,72:1 — trouvé par le scan axe existant sur le dialog de saisie rapide (arrière-plan visible derrière la modale), pas par une relecture. Confirme ADR-017 : re-scanner systématiquement, ne jamais supposer qu'un token déjà utilisé ailleurs est sûr à un nouveau poids/taille. `--success` light passé de `oklch(0.59 0.13 150)` à `oklch(0.5 0.13 150)` (calculé pour ≥4,5:1 sur fond page **et** carte blanche, marge vérifiée par script).
 
 ---
 
