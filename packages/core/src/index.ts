@@ -2,6 +2,7 @@
 export * from "./types/index.js";
 
 // Calculations
+export * from "./calculations/accounts.js";
 export * from "./calculations/balance.js";
 export * from "./calculations/budget.js";
 export * from "./calculations/dashboard.js";
@@ -33,3 +34,4 @@ export * from "./validators/budget-schema.js";
 export * from "./validators/goal-schema.js";
 export * from "./validators/investment-schema.js";
 export * from "./validators/category-schema.js";
+export * from "./validators/account-schema.js";

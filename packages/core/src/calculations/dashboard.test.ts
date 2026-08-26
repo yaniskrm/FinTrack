@@ -6,6 +6,8 @@ function tx(partial: Partial<Transaction>): Transaction {
   return {
     id: "t",
     workspace_id: "w",
+    account_id: "acc1",
+    to_account_id: null,
     category_id: null,
     amount: 0,
     currency: "EUR",

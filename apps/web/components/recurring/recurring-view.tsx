@@ -6,8 +6,10 @@ import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { formatCurrency } from "@fintrack/core";
 import type { Currency, RecurringFormValues } from "@fintrack/core";
 import { useDeleteRecurringRule, useRecurringRules } from "../../hooks/use-recurring";
+import { useAccounts } from "../../hooks/use-accounts";
 import type { RecurringRuleRow } from "../../lib/recurring/types";
 import type { CategoryRow } from "../../lib/transactions/types";
+import type { AccountRow } from "../../lib/accounts/types";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { RecurringDialog } from "./recurring-dialog";
@@ -35,6 +37,8 @@ function toFormValues(rule: RecurringRuleRow): DefaultValues<RecurringFormValues
     frequency: rule.frequency,
     startDate: rule.start_date,
     endDate: rule.end_date,
+    accountId: rule.account_id,
+    toAccountId: rule.to_account_id,
   };
 }
 
@@ -49,11 +53,14 @@ function formatDate(iso: string): string {
 export function RecurringView({
   initialRules,
   initialCategories,
+  initialAccounts,
 }: {
   initialRules: RecurringRuleRow[];
   initialCategories: CategoryRow[];
+  initialAccounts: AccountRow[];
 }) {
   const { data: rules } = useRecurringRules(initialRules);
+  const { data: accounts } = useAccounts(initialAccounts);
   const deleteRule = useDeleteRecurringRule();
 
   const [dialog, setDialog] = useState<DialogState>({ open: false });
@@ -184,6 +191,7 @@ export function RecurringView({
           setDialog((prev) => ({ ...prev, open }));
         }}
         categories={initialCategories}
+        accounts={accounts}
         editId={dialog.editId}
         initialValues={dialog.initialValues}
       />

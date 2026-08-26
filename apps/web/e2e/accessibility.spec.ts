@@ -48,11 +48,12 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expectNoViolations(page);
   });
 
-  test("settings: account, security, categories, notifications, export", async ({ page }) => {
+  test("settings: account, security, accounts, categories, notifications, export", async ({ page }) => {
     await signUpAndLogIn(page);
     for (const path of [
       "/settings/account",
       "/settings/security",
+      "/settings/accounts",
       "/settings/categories",
       "/settings/notifications",
       "/settings/export",
@@ -65,6 +66,14 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
   test("category dialog", async ({ page }) => {
     await signUpAndLogIn(page);
     await page.goto("/settings/categories");
+    await page.getByRole("button", { name: "Ajouter" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoViolations(page);
+  });
+
+  test("account dialog", async ({ page }) => {
+    await signUpAndLogIn(page);
+    await page.goto("/settings/accounts");
     await page.getByRole("button", { name: "Ajouter" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectNoViolations(page);

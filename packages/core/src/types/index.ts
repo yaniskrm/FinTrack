@@ -33,6 +33,8 @@ export type ReimbursementStatus = "none" | "pending" | "settled";
 export interface Transaction {
   id: string;
   workspace_id: string;
+  account_id: string;
+  to_account_id: string | null; // set only when type === "transfer" — destination account
   category_id: string | null;
   amount: number;          // in original currency, always positive
   currency: Currency;
@@ -57,6 +59,8 @@ export type RecurringFrequency = "daily" | "weekly" | "monthly" | "yearly";
 export interface RecurringRule {
   id: string;
   workspace_id: string;
+  account_id: string;
+  to_account_id: string | null; // set only when type === "transfer" — destination account
   category_id: string | null;
   amount: number;
   currency: Currency;
@@ -67,6 +71,25 @@ export interface RecurringRule {
   end_date: string | null;
   next_occurrence: string;
   created_at: string;
+}
+
+// ─── Account ──────────────────────────────────────────────────────────────────
+
+export type AccountType = "checking" | "savings" | "investment" | "cash" | "other";
+
+export interface Account {
+  id: string;
+  workspace_id: string;
+  name: string;
+  type: AccountType;
+  currency: Currency;
+  initial_balance: number;     // native currency, can be negative (e.g. a credit card)
+  initial_balance_eur: number; // frozen at creation time — NEVER recalculated
+  color: string;
+  icon: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Category ────────────────────────────────────────────────────────────────

@@ -25,6 +25,8 @@ function optimisticRule(values: RecurringFormValues): RecurringRuleRow {
   return {
     id: `optimistic-${crypto.randomUUID()}`,
     workspace_id: "",
+    account_id: values.accountId,
+    to_account_id: values.toAccountId,
     category_id: values.categoryId,
     amount: values.amount,
     currency: values.currency,
@@ -87,6 +89,8 @@ export function useUpdateRecurringRule() {
             r.id === id
               ? {
                   ...r,
+                  account_id: values.accountId,
+                  to_account_id: values.toAccountId,
                   category_id: values.categoryId,
                   amount: values.amount,
                   currency: values.currency,

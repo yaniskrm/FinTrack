@@ -42,6 +42,8 @@ export async function createTransactionAction(values: TransactionFormValues): Pr
     .from("transactions")
     .insert({
       workspace_id: workspace.id,
+      account_id: input.accountId,
+      to_account_id: input.toAccountId,
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,
@@ -101,6 +103,8 @@ export async function updateTransactionAction(
   const { data, error } = await supabase
     .from("transactions")
     .update({
+      account_id: input.accountId,
+      to_account_id: input.toAccountId,
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,
@@ -158,6 +162,7 @@ export async function settleReimbursementAction(id: string): Promise<MutationRes
     .from("transactions")
     .insert({
       workspace_id: original.workspace_id,
+      account_id: original.account_id,
       category_id: refundCategory?.id ?? null,
       amount: original.amount,
       currency: original.currency,

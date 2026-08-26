@@ -52,6 +52,8 @@ describe("transactionsToCsv", () => {
   const tx: Transaction = {
     id: "t1",
     workspace_id: "ws1",
+    account_id: "acc1",
+    to_account_id: null,
     category_id: "cat1",
     amount: 42,
     currency: "EUR",

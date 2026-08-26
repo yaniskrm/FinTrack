@@ -34,6 +34,8 @@ export async function createRecurringRuleAction(
     .from("recurring_rules")
     .insert({
       workspace_id: workspace.id,
+      account_id: input.accountId,
+      to_account_id: input.toAccountId,
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,
@@ -70,6 +72,8 @@ export async function updateRecurringRuleAction(
   const { data, error } = await supabase
     .from("recurring_rules")
     .update({
+      account_id: input.accountId,
+      to_account_id: input.toAccountId,
       category_id: input.categoryId,
       amount: input.amount,
       currency: input.currency,

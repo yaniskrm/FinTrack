@@ -6,6 +6,8 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
   return {
     id: "t1",
     workspace_id: "ws1",
+    account_id: "acc1",
+    to_account_id: null,
     category_id: null,
     amount: 20,
     currency: "EUR",

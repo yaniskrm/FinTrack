@@ -34,6 +34,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          color: string
+          created_at: string
+          currency: string
+          icon: string
+          id: string
+          initial_balance: number
+          initial_balance_eur: number
+          is_active: boolean
+          name: string
+          type: Database["public"]["Enums"]["account_type"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          currency?: string
+          icon?: string
+          id?: string
+          initial_balance?: number
+          initial_balance_eur?: number
+          is_active?: boolean
+          name: string
+          type?: Database["public"]["Enums"]["account_type"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          currency?: string
+          icon?: string
+          id?: string
+          initial_balance?: number
+          initial_balance_eur?: number
+          is_active?: boolean
+          name?: string
+          type?: Database["public"]["Enums"]["account_type"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "exchange_rates"
+            referencedColumns: ["currency"]
+          },
+          {
+            foreignKeyName: "accounts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           amount_eur: number
@@ -354,6 +414,7 @@ export type Database = {
       }
       recurring_rules: {
         Row: {
+          account_id: string
           amount: number
           category_id: string | null
           created_at: string
@@ -364,10 +425,12 @@ export type Database = {
           label: string
           next_occurrence: string
           start_date: string
+          to_account_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           workspace_id: string
         }
         Insert: {
+          account_id: string
           amount: number
           category_id?: string | null
           created_at?: string
@@ -378,10 +441,12 @@ export type Database = {
           label: string
           next_occurrence: string
           start_date: string
+          to_account_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           workspace_id: string
         }
         Update: {
+          account_id?: string
           amount?: number
           category_id?: string | null
           created_at?: string
@@ -392,10 +457,18 @@ export type Database = {
           label?: string
           next_occurrence?: string
           start_date?: string
+          to_account_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "recurring_rules_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "recurring_rules_category_id_fkey"
             columns: ["category_id"]
@@ -411,6 +484,13 @@ export type Database = {
             referencedColumns: ["currency"]
           },
           {
+            foreignKeyName: "recurring_rules_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recurring_rules_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
@@ -421,6 +501,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string
           amount: number
           amount_eur: number
           category_id: string | null
@@ -436,11 +517,13 @@ export type Database = {
           reimbursement_contact: string | null
           reimbursement_status: Database["public"]["Enums"]["reimbursement_status"]
           settled_transaction_id: string | null
+          to_account_id: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at: string
           workspace_id: string
         }
         Insert: {
+          account_id: string
           amount: number
           amount_eur: number
           category_id?: string | null
@@ -456,11 +539,13 @@ export type Database = {
           reimbursement_contact?: string | null
           reimbursement_status?: Database["public"]["Enums"]["reimbursement_status"]
           settled_transaction_id?: string | null
+          to_account_id?: string | null
           type: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           workspace_id: string
         }
         Update: {
+          account_id?: string
           amount?: number
           amount_eur?: number
           category_id?: string | null
@@ -476,11 +561,19 @@ export type Database = {
           reimbursement_contact?: string | null
           reimbursement_status?: Database["public"]["Enums"]["reimbursement_status"]
           settled_transaction_id?: string | null
+          to_account_id?: string | null
           type?: Database["public"]["Enums"]["transaction_type"]
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]
@@ -507,6 +600,13 @@ export type Database = {
             columns: ["settled_transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
           {
@@ -588,6 +688,10 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: boolean
       }
+      seed_default_account: {
+        Args: { p_workspace_id: string }
+        Returns: undefined
+      }
       seed_default_categories: {
         Args: { p_workspace_id: string }
         Returns: undefined
@@ -596,6 +700,7 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
+      account_type: "checking" | "savings" | "investment" | "cash" | "other"
       budget_period: "monthly" | "yearly"
       investment_type: "etf" | "stock" | "scpi" | "savings" | "crypto" | "other"
       member_role: "owner" | "member"
@@ -732,6 +837,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      account_type: ["checking", "savings", "investment", "cash", "other"],
       budget_period: ["monthly", "yearly"],
       investment_type: ["etf", "stock", "scpi", "savings", "crypto", "other"],
       member_role: ["owner", "member"],

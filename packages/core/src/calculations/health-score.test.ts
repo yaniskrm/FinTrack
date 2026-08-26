@@ -5,6 +5,8 @@ import type { Budget, Goal, Transaction } from "../types/index.js";
 const makeTx = (type: "income" | "expense", amount_eur: number): Transaction => ({
   id: crypto.randomUUID(),
   workspace_id: "ws1",
+  account_id: "acc1",
+  to_account_id: null,
   category_id: null,
   amount: amount_eur,
   currency: "EUR",

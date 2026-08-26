@@ -14,22 +14,25 @@ export default async function TransactionsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: transactions }, { data: categories }, { data: profile }] = await Promise.all([
-    supabase
-      .from("transactions")
-      .select("*")
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase.from("categories").select("*").order("name"),
-    user
-      ? supabase.from("profiles").select("default_currency").eq("id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [{ data: transactions }, { data: categories }, { data: accounts }, { data: profile }] =
+    await Promise.all([
+      supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false }),
+      supabase.from("categories").select("*").order("name"),
+      supabase.from("accounts").select("*").order("created_at", { ascending: true }),
+      user
+        ? supabase.from("profiles").select("default_currency").eq("id", user.id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
   return (
     <TransactionsView
       initialTransactions={transactions ?? []}
       initialCategories={categories ?? []}
+      initialAccounts={accounts ?? []}
       defaultCurrency={(profile?.default_currency as Currency | undefined) ?? "EUR"}
     />
   );

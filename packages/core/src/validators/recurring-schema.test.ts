@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { recurringInputSchema } from "./recurring-schema.js";
 
+const ACCOUNT_A = "11111111-1111-4111-8111-111111111111";
+const ACCOUNT_B = "22222222-2222-4222-8222-222222222222";
+
 const valid = {
   amount: 15.99,
   currency: "EUR",
@@ -10,6 +13,8 @@ const valid = {
   frequency: "monthly",
   startDate: "2026-08-01",
   endDate: null,
+  accountId: ACCOUNT_A,
+  toAccountId: null,
 };
 
 describe("recurringInputSchema", () => {
@@ -49,5 +54,23 @@ describe("recurringInputSchema", () => {
 
   it("rejects a malformed start date", () => {
     expect(recurringInputSchema.safeParse({ ...valid, startDate: "01/08/2026" }).success).toBe(false);
+  });
+
+  it("rejects a transfer without a destination account", () => {
+    expect(recurringInputSchema.safeParse({ ...valid, type: "transfer", toAccountId: null }).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a non-transfer with a destination account set", () => {
+    expect(
+      recurringInputSchema.safeParse({ ...valid, type: "expense", toAccountId: ACCOUNT_B }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a transfer with a distinct destination account", () => {
+    expect(
+      recurringInputSchema.safeParse({ ...valid, type: "transfer", toAccountId: ACCOUNT_B }).success,
+    ).toBe(true);
   });
 });
