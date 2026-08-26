@@ -107,15 +107,28 @@ pnpm dev
 
 ### Redémarrer l'environnement local
 
-Si l'app ne répond plus (serveur dev planté, Docker relancé…), `./scripts/dev-restart.sh` relance tout proprement (Docker → Supabase → `pnpm dev`) sans repasser par un setup complet. `./scripts/dev-restart.sh --reset` réinitialise en plus la base (`supabase db reset` — supprime les données locales).
+Si l'app ne répond plus (serveur dev planté, Docker relancé…), `./scripts/dev-restart.sh` relance tout proprement (Docker → Supabase → `pnpm dev`) **sans toucher aux données** — c'est sûr à relancer à tout moment. `./scripts/dev-restart.sh --reset` réinitialise en plus la base (`supabase db reset` — supprime les données locales) ; ce flag n'est jamais implicite.
+
+⚠️ **Un compte créé via `/signup` ne survit pas à un `supabase db reset`.** La base locale sert aussi à la suite E2E Playwright et se fait réinitialiser régulièrement pendant le développement (nouvelles migrations, etc.) — ce n'est pas un bug ni de la corruption, juste le fonctionnement normal d'une base de dev partagée. Comme le reset de mot de passe n'envoie pas de vrai email en local (voir ci-dessous), utilisez plutôt le **compte de démo** ci-dessous pour vos tests manuels : il est recréé automatiquement à chaque reset.
 
 ---
 
 ## Utilisation, une fois installée
 
+### Se connecter — compte de démo
+
+Un compte de test aux identifiants stables est recréé automatiquement à chaque `supabase db reset`/`supabase start` (voir `supabase/seed.sql`) :
+
+```
+email    demo@fintrack.local
+password demo1234
+```
+
+Il a son propre espace de travail, déjà peuplé des catégories et du compte bancaire par défaut. Pratique pour retomber sur ses pieds après un reset, sans jamais dépendre d'un email de confirmation ou de réinitialisation.
+
 ### Créer un compte
 
-Rendez-vous sur `/signup` pour créer un compte. Un espace de travail (« workspace ») et une catégorie par défaut sont créés automatiquement. En local, les emails (confirmation, réinitialisation de mot de passe) sont capturés par Inbucket sur `http://localhost:54324` plutôt qu'envoyés réellement.
+Rendez-vous sur `/signup` pour créer un compte. Un espace de travail (« workspace ») et une catégorie par défaut sont créés automatiquement. En local, les emails (confirmation, réinitialisation de mot de passe) sont capturés par Inbucket sur `http://localhost:54324` plutôt qu'envoyés réellement — et **ce compte sera perdu au prochain `supabase db reset`** (voir ci-dessus), contrairement au compte de démo.
 
 ### Saisir une transaction
 
