@@ -107,9 +107,15 @@ pnpm dev
 
 ### Redémarrer l'environnement local
 
-Si l'app ne répond plus (serveur dev planté, Docker relancé…), `./scripts/dev-restart.sh` relance tout proprement (Docker → Supabase → `pnpm dev`) **sans toucher aux données** — c'est sûr à relancer à tout moment. `./scripts/dev-restart.sh --reset` réinitialise en plus la base (`supabase db reset` — supprime les données locales) ; ce flag n'est jamais implicite.
+Si l'app ne répond plus (serveur dev planté, Docker relancé…), `./scripts/dev-restart.sh` relance tout proprement (Docker → Supabase → `pnpm dev`) **sans toucher aux données** — c'est sûr à relancer à tout moment. `./scripts/dev-restart.sh --reset` réinitialise en plus la base (`supabase db reset` — recrée le schéma et rejoue les migrations) ; ce flag n'est jamais implicite.
 
-⚠️ **Un compte créé via `/signup` ne survit pas à un `supabase db reset`.** La base locale sert aussi à la suite E2E Playwright et se fait réinitialiser régulièrement pendant le développement (nouvelles migrations, etc.) — ce n'est pas un bug ni de la corruption, juste le fonctionnement normal d'une base de dev partagée. Comme le reset de mot de passe n'envoie pas de vrai email en local (voir ci-dessous), utilisez plutôt le **compte de démo** ci-dessous pour vos tests manuels : il est recréé automatiquement à chaque reset.
+**Vos comptes survivent désormais à un `--reset`.** `dev-restart.sh --reset` sauvegarde automatiquement tous les comptes (identifiants + workspace + catégories + transactions + tout le reste) avant le wipe, puis les restaure juste après (`scripts/db-backup.sh`/`scripts/db-restore.sh`, voir ces fichiers pour le détail). Si vous lancez `supabase db reset` directement (sans passer par le script), faites de même à la main :
+
+```bash
+./scripts/db-backup.sh && supabase db reset && ./scripts/db-restore.sh
+```
+
+Un reset nu (sans backup/restore autour) reste destructeur — c'est un choix explicite, jamais accidentel.
 
 ---
 
@@ -128,7 +134,7 @@ Il a son propre espace de travail, déjà peuplé des catégories et du compte b
 
 ### Créer un compte
 
-Rendez-vous sur `/signup` pour créer un compte. Un espace de travail (« workspace ») et une catégorie par défaut sont créés automatiquement. En local, les emails (confirmation, réinitialisation de mot de passe) sont capturés par Inbucket sur `http://localhost:54324` plutôt qu'envoyés réellement — et **ce compte sera perdu au prochain `supabase db reset`** (voir ci-dessus), contrairement au compte de démo.
+Rendez-vous sur `/signup` pour créer un compte. Un espace de travail (« workspace ») et une catégorie par défaut sont créés automatiquement. En local, les emails (confirmation, réinitialisation de mot de passe) sont capturés par Inbucket sur `http://localhost:54324` plutôt qu'envoyés réellement. Ce compte survit à un `supabase db reset` **tant qu'il passe par `db-backup.sh`/`db-restore.sh`** (automatique via `dev-restart.sh --reset`, voir ci-dessus) — seul un reset nu, sans backup/restore autour, le perdrait.
 
 ### Saisir une transaction
 
@@ -161,7 +167,7 @@ Depuis `/settings/export`, exportez vos données au format CSV (transactions sur
 ```bash
 ./scripts/setup.sh                    # setup complet (première fois) — voir Installation
 ./scripts/dev-restart.sh              # relance tout proprement (Docker → Supabase → dev server)
-./scripts/dev-restart.sh --reset      # idem + réinitialise la base (supabase db reset)
+./scripts/dev-restart.sh --reset      # idem + réinitialise la base (supabase db reset) SANS perdre les comptes
 
 pnpm dev                              # démarre l'application web en local
 pnpm build                            # build de tous les packages/apps
@@ -172,7 +178,8 @@ pnpm --filter @fintrack/web exec playwright test   # tests E2E (chromium + webki
 
 supabase start                        # démarre Supabase en local (Docker)
 supabase stop                         # arrête Supabase
-supabase db reset                     # réinitialise la base (migrations + données de test)
+./scripts/db-backup.sh && supabase db reset && ./scripts/db-restore.sh   # réinitialise la base SANS perdre les comptes
+supabase db reset                     # réinitialise la base — ⚠️ destructeur si lancé seul, sans backup/restore autour
 ```
 
 ---
