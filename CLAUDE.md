@@ -8,7 +8,7 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 **Documentation complète** : Wiki Notion → https://www.notion.so/32127748ca0281ad968bebf687fb73e1
 
-**Phase courante : Phase 10 — Frictions du quotidien livrée (catégories personnalisables, détection auto de catégorie, remboursements, vue mensuelle, mode pays), mergée dans `main`, CI verte. v1.0.0 + v1.1 taguées — backlog restant : v2 (voir Roadmap).**
+**Phase courante : Phase 11 — Comptes bancaires multiples livrée (table `accounts`, virements internes, filtre par compte sur transactions/dashboard), mergée dans `main`, CI verte. v1.0.0 + v1.1 taguées — backlog restant : v2 (voir Roadmap).**
 
 > `main` contient tout le travail web à jour. Workflow : une branche `feat/web-phase-N` par phase, mergée dans `main` (`--no-ff`) en fin de phase une fois le CI vérifié. Voir *Workflow Git*.
 
@@ -46,7 +46,7 @@ fintrack/
 │   ├── web/                      ← Next.js 15 — LA cible v1
 │   │   ├── app/
 │   │   │   ├── (auth)/           ← login, signup, forgot-password, reset-password
-│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, investments, settings/{account,security,categories,notifications,export} (protégé)
+│   │   │   ├── (app)/            ← dashboard, transactions, subscriptions, budget, goals, investments, settings/{account,security,accounts,categories,notifications,export} (protégé)
 │   │   │   ├── auth/callback/    ← échange du code PKCE (email + reset)
 │   │   │   ├── mfa/              ← step-up 2FA au login
 │   │   │   ├── privacy/          ← RGPD (template, à faire relire juridiquement)
@@ -60,26 +60,27 @@ fintrack/
 │   │   │   ├── goals/            ← dialog + liste (jauges de progression)
 │   │   │   ├── investments/      ← dialogs (position/valorisation/clôture), allocation donuts, courbe de performance
 │   │   │   ├── categories/       ← dialog (nom/icône/couleur) + liste (visibles/masquées) — Phase 10
-│   │   │   ├── settings/         ← export (CSV/JSON/PDF), settings-nav (Compte/Sécurité/Catégories/Notifications/Export), push-notifications-card
+│   │   │   ├── accounts/         ← dialog (nom/type/devise/solde initial/icône/couleur) + liste (actifs/archivés) — Phase 11
+│   │   │   ├── settings/         ← export (CSV/JSON/PDF), settings-nav (Compte/Sécurité/Comptes/Catégories/Notifications/Export), push-notifications-card
 │   │   │   ├── app-shell, logo, theme-provider, theme-toggle, providers, IdleTimeout
-│   │   ├── hooks/                ← use-transactions (+ catégories, remboursements), use-recurring, use-budgets, use-goals, use-investments, use-categories (optimistes)
-│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions incl. update email/change password, mfa), transactions (+ merchant/remboursement), recurring, budgets, goals, investments, categories, profile (devise par défaut), export (queries/csv/json/pdf/download), dashboard, currencies, push, env, utils
+│   │   ├── hooks/                ← use-transactions (+ catégories, remboursements), use-recurring, use-budgets, use-goals, use-investments, use-categories, use-accounts (optimistes)
+│   │   ├── lib/                  ← supabase (client/server/middleware), auth (actions incl. update email/change password, mfa), transactions (+ merchant/remboursement/compte), recurring, budgets, goals, investments, categories, accounts, profile (devise par défaut), export (queries/csv/json/pdf/download), dashboard, currencies, push, env, utils
 │   │   ├── e2e/                  ← Playwright (chromium + webkit) : auth, transactions, budget/goals, export, mfa/AAL2, accessibilité (axe-core)
 │   │   └── middleware.ts         ← refresh session + garde de routes + gate AAL2
 │   └── mobile/                   ← Expo (ère mobile-first, v2 — non retravaillé ; lint en dette)
 ├── packages/
-│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 209 tests Vitest.
+│   ├── core/                     ← Logique métier pure — ZERO dépendance React/Next/Supabase. 233 tests Vitest.
 │   │   └── src/
-│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique), reimbursements (solde en attente)
+│   │       ├── calculations/     ← balance (+savingsRate), budget (+suggestion), dashboard, goal, health-score, investments (P&L, allocation, historique), reimbursements (solde en attente), accounts (solde par compte/total — Phase 11)
 │   │       ├── categorization/   ← suggestCategoryId — détection heuristique déterministe (Phase 10, voir ADR-019)
 │   │       ├── currency/         ← conversion (convertToEur), formatting (Intl)
 │   │       ├── export/           ← CSV (RFC 4180) + JSON (sauvegarde complète RGPD) — transactions/budgets/investments
-│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment/category-schema) + impératifs (auth incl. update email/password, mfa, transaction, recurring)
+│   │       ├── validators/       ← Zod (transaction/recurring/budget/goal/investment/category/account-schema) + impératifs (auth incl. update email/password, mfa, transaction, recurring)
 │   │       └── types/            ← types partagés + SUPPORTED_CURRENCIES (165)
 │   ├── ui/                       ← **tokens React Native (pour le mobile v2)** — PAS le design system web
 │   └── api-client/               ← Client Supabase typé + database.types.ts (généré)
 ├── supabase/
-│   ├── migrations/               ← Schéma versionné (12 migrations)
+│   ├── migrations/               ← Schéma versionné (13 migrations)
 │   ├── functions/
 │   │   ├── exchange-rates/       ← Cron quotidien : MAJ des taux (open.er-api.com, sans clé)
 │   │   └── send-notifications/   ← Cron quotidien 08h UTC : Web Push (VAPID) pour les récurrences J-3/J-1/J0 ✅
@@ -96,11 +97,12 @@ workspaces          ← Unité de partage (1 par user en v1, N en v2)
 workspace_members   ← workspace_id + user_id + role + accepted_at
 profiles            ← Extension auth.users (default_currency, locale…)
 categories          ← Personnalisables par workspace (14 par défaut, dont Sport ; + hidden depuis Phase 10)
-transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate, + merchant, + reimbursement_status/contact/settled_transaction_id depuis Phase 10)
-recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅
+accounts            ← Comptes bancaires par workspace (courant/épargne/investissement/espèces/autre) — Phase 11
+transactions        ← Table centrale (+ amount_eur gelé, + rate_approximate, + merchant, + reimbursement_status/contact/settled_transaction_id depuis Phase 10, + account_id/to_account_id depuis Phase 11)
+recurring_rules     ← Règles de récurrence (≠ transactions, GÉNÈRE des transactions) ✅ (+ account_id/to_account_id depuis Phase 11)
 exchange_rates      ← Taux globaux (165 devises), écrits par l'Edge Function uniquement
 budgets             ← Enveloppes par catégorie, alertes 80%/100% ✅
-investments         ← Positions de portefeuille (P&L latent/réalisé, allocation) ✅
+investments         ← Positions de portefeuille (P&L latent/réalisé, allocation) ✅ — pas de account_id : patrimoine distinct des comptes bancaires (voir ADR-020)
 investment_valuations ← Historique de valorisation par position (courbe temporelle) ✅
 goals               ← Objectifs d'épargne, contribution mensuelle calculée ✅
 push_subscriptions  ← Abonnements Web Push par device/navigateur ✅ (v1.1 — n'existait pas avant, malgré la doc précédente)
@@ -108,16 +110,16 @@ push_subscriptions  ← Abonnements Web Push par device/navigateur ✅ (v1.1 —
 
 **Point critique** : toutes les tables métier ont un `workspace_id`, jamais un `user_id` direct (anticipe le multi-utilisateurs). Workspace + profil + catégories par défaut créés automatiquement au signup via triggers PostgreSQL. **Exception assumée : `push_subscriptions`** — un abonnement push est personnel (lié à un device/navigateur précis), pas une donnée financière partagée ; la RLS y est scopée par `user_id = auth.uid()`, pas par appartenance au workspace (le `workspace_id` reste présent sur la table, pour la lookup service-role de l'Edge Function).
 
-**RLS activé sur les 12 tables `public`** (vérifié). Règle fondamentale :
+**RLS activé sur les 13 tables `public`** (vérifié). Règle fondamentale :
 ```sql
 workspace_id IN (
   SELECT workspace_id FROM workspace_members
   WHERE user_id = auth.uid() AND accepted_at IS NOT NULL
 )
 ```
-**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **7 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `investment_valuations`, `goals`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql` + `20260825000000_investments_portfolio.sql`.
+**Couche 2FA (AAL2)** : policies `RESTRICTIVE` sur **8 tables financières** (`categories`, `transactions`, `recurring_rules`, `budgets`, `investments`, `investment_valuations`, `goals`, `accounts`) — un user ayant un facteur TOTP vérifié ne peut lire/écrire ces données qu'avec une session `aal2` (non contournable côté serveur). Voir `20260822000000_mfa_aal2_rls.sql` + `20260825000000_investments_portfolio.sql` + `20260828000000_phase11_accounts.sql`.
 
-⚠️ **Règle à appliquer dès la conception pour toute future page lisant une table financière** : elle **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug trouvé et corrigé en Phase 6 pour `/transactions`/`/subscriptions`, appliqué dès la conception pour `/budget`/`/goals` en Phase 7 et `/investments` en Phase 8).
+⚠️ **Règle à appliquer dès la conception pour toute future page lisant une table financière** : elle **doit** être ajoutée à `AUTH_REQUIRED_PREFIXES` et `AAL2_GATED_PREFIXES` dans `apps/web/lib/supabase/middleware.ts`, sinon un user 2FA bloqué en AAL1 atterrit sur la page et voit des données vides silencieusement au lieu d'être renvoyé vers `/mfa` (bug trouvé et corrigé en Phase 6 pour `/transactions`/`/subscriptions`, appliqué dès la conception pour `/budget`/`/goals` en Phase 7 et `/investments` en Phase 8). `/settings/accounts` (Phase 11) est déjà couverte par le préfixe générique `/settings`, déjà présent dans les deux listes — aucune modification du middleware n'a été nécessaire.
 
 ---
 
@@ -145,9 +147,9 @@ workspace_id IN (
 - Accessibilité non négociable : clavier + labels.
 
 ### Tests
-- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **209 tests actuellement, tous verts, 98,7 % de couverture.**
+- Tout nouveau code dans `packages/core` DOIT avoir un test Vitest. **233 tests actuellement, tous verts, 98,8 % de couverture.**
 - Coverage cible 80 % sur `packages/core`.
-- `apps/web` : E2E Playwright (`apps/web/e2e/`, chromium + webkit) — signup/login, saisie rapide, budget/objectif, les 3 formats d'export, cycle complet 2FA/AAL2 (codes TOTP réels via `otpauth`), catégories (CRUD + masquage), remboursement (marquer/régler), navigation mensuelle, mode pays (devise par défaut → pré-remplissage). Audit d'accessibilité intégré : chaque page/dialog clé est scannée par `@axe-core/playwright` (WCAG 2 A/AA) dans la même suite — c'est le mécanisme d'audit, pas une relecture manuelle. Tourne en CI (job `E2E`) contre Supabase local + un vrai build de prod.
+- `apps/web` : E2E Playwright (`apps/web/e2e/`, chromium + webkit) — signup/login, saisie rapide, budget/objectif, les 3 formats d'export, cycle complet 2FA/AAL2 (codes TOTP réels via `otpauth`), catégories (CRUD + masquage), remboursement (marquer/régler), navigation mensuelle, mode pays (devise par défaut → pré-remplissage), comptes (CRUD + archivage, virement entre deux comptes). Audit d'accessibilité intégré : chaque page/dialog clé est scannée par `@axe-core/playwright` (WCAG 2 A/AA) dans la même suite — c'est le mécanisme d'audit, pas une relecture manuelle. Tourne en CI (job `E2E`) contre Supabase local + un vrai build de prod.
 
 ### Récurrences (Phase 6)
 - Une `recurring_rule` **n'est pas** une transaction — elle en **génère**. Fonction SQL pure `generate_due_recurring_transactions()` (`supabase/functions` non, c'est une fonction PostgreSQL dans une migration), appelée quotidiennement à 05h00 UTC par `pg_cron` (appel direct, pas de `pg_net` car interne à la DB).
@@ -170,6 +172,13 @@ workspace_id IN (
 - **Remboursements** : `reimbursement_status` (`none`/`pending`/`settled`) sur `transactions`. Marquer réglé (`settleReimbursementAction`) crée une **nouvelle transaction de revenu liée** (`settled_transaction_id`) plutôt que de muter la dépense d'origine — préserve son `amount_eur` gelé (cohérent avec ADR-005). Éditer une transaction réglée ne peut jamais la faire redescendre en `pending`/`none` (le formulaire d'édition n'a pas de case à cocher pour ce 3ᵉ état).
 - **Mode pays** : `profiles.default_currency` pré-remplit la devise du formulaire de saisie rapide (`updateDefaultCurrencyAction`, réglable depuis `/settings/account`) — n'affecte que les *nouvelles* transactions, jamais l'historique.
 - **Vue mensuelle** : navigation M-1/M+1 sur `/transactions` (state client, pas d'URL — pas de deep-link vers un mois précis pour l'instant), totaux agrégés via `calculateTotals` déjà existant (Phase 5).
+
+### Comptes bancaires multiples (Phase 11)
+- **`accounts`** : courant/épargne/investissement/espèces/autre, gérés depuis `/settings/accounts` (création/édition/archivage — jamais de suppression depuis l'UI, même convention que les catégories). Créé automatiquement pour chaque nouveau workspace (trigger `handle_new_workspace`, aux côtés des catégories par défaut) ; chaque workspace existant a été backfillé avec un « Compte principal » lors de la migration, si bien que `transactions.account_id`/`recurring_rules.account_id` sont **`NOT NULL`** — aucune ligne, historique ou future, n'est jamais sans compte.
+- **Virements internes** : réutilisent la valeur `transaction_type = 'transfer'` (déjà présente dans l'enum depuis la Phase 3, jamais exploitée avant). Une seule ligne de transaction porte les deux comptes : `account_id` = source, `to_account_id` = destination (nullable, rempli **si et seulement si** `type = 'transfer'`, contrainte SQL + Zod). Pas de seconde ligne liée façon remboursement (ADR-019) — un virement n'est pas un nouvel événement revenu/dépense, juste un déplacement d'argent entre deux comptes du même utilisateur. `calculateAccountBalance` (`packages/core`) traite un virement comme neutre au niveau workspace mais impactant pour les deux comptes concernés (- côté source, + côté destination) ; `calculateBalance`/`calculateTotals` (niveau agrégé, Phase 3) restent inchangés, un virement y est toujours neutre.
+- **`generate_due_recurring_transactions()`** propage `account_id`/`to_account_id` de la règle vers chaque transaction générée — une règle récurrente peut elle-même être un virement (ex. versement automatique mensuel vers une épargne). Revérifié manuellement après la migration (insertion d'une règle de virement de test + appel direct de la fonction).
+- **Filtre par compte** : sélecteur « Tous les comptes / compte spécifique » sur `/transactions` et le tableau de bord (`DashboardView`, converti en composant client pour porter ce filtre — la page reste un Server Component qui fetch les données brutes). Un virement reste visible des deux côtés du filtre (comme sur un vrai relevé bancaire : `tx.account_id === selected || tx.to_account_id === selected`). Les investissements ne sont **pas** filtrés par compte (voir ADR-020) — le patrimoine reste toujours affiché en entier.
+- **Mémorisation du dernier compte utilisé** : `localStorage` (`fintrack:lastAccountId`), best-effort — préremplit la saisie rapide sans round-trip serveur. Si absent/invalide (compte archivé, storage vide), retombe sur le premier compte actif.
 
 ---
 
@@ -288,7 +297,8 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 11. **Réglages du compte** — changement d'email (double confirmation Supabase), changement de mot de passe (ré-authentification), gestion 2FA TOTP ✅
 12. **Catégories** — création/édition (nom/icône/couleur)/masquage, détection automatique déterministe à la saisie ✅
 13. **Vue mensuelle** — navigation M-1/M+1 + totaux agrégés sur `/transactions` ✅
-14. **Module IA** — v2
+14. **Comptes bancaires multiples** — CRUD/archivage, virements internes, filtre par compte (transactions + dashboard) ✅
+15. **Module IA** — v2
 
 ---
 
@@ -309,8 +319,9 @@ Commits : `type(scope): description`. **Jamais de push direct sur `main` sans ê
 
 - **v1.1** ✅ Fermeture de dette technique + Developer Experience — Web Push effectif (Edge Function `send-notifications` réécrite, VAPID via `@negrel/webpush`), PWA (manifest, icônes, service worker), page Réglages → Notifications, `README.md`, `scripts/setup.sh` (setup 1-commande).
 - **Phase 10** ✅ Frictions du quotidien — catégories personnalisables (CRUD + masquage), détection automatique de catégorie (heuristique déterministe, sans IA), workflow de remboursement (marquer/régler), vue mensuelle des transactions (M-1/M+1 + totaux), mode pays (devise par défaut).
+- **Phase 11** ✅ Comptes bancaires multiples — table `accounts` (RLS + AAL2), backfill automatique de l'historique existant, virements internes (`transaction_type = 'transfer'` + `to_account_id`), gestion `/settings/accounts`, filtre par compte sur transactions/dashboard, mémorisation du dernier compte utilisé.
 
-Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 11 planifiée pour l'instant.
+Prochaine étape : Phase 12 — import de fichiers bancaires (voir audit v2, § Découpage proposé en jalons).
 
 **Backlog v2** : app mobile Expo (reprise), Open Banking (détection auto d'abonnements), module IA, multi-utilisateurs.
 
@@ -336,6 +347,7 @@ Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 11 planifi
 - **ADR-017** *(Phase 9)* : audit d'accessibilité fait via **scans automatisés `@axe-core/playwright`** intégrés à la suite E2E (chaque page/dialog clé, tags `wcag2a`/`wcag2aa`), pas une relecture manuelle du code. A immédiatement trouvé un vrai échec de contraste WCAG AA (`--muted-foreground` à 4,39:1, corrigé à 4,5:1+) qu'une relecture aurait pu manquer — preuve que l'automatisation est la bonne méthode ici, à reconduire pour toute nouvelle page.
 - **ADR-018** *(v1.1)* : Web Push implémenté avec **`@negrel/webpush`** (Web Crypto API native, importé depuis GitHub raw — `jsr:@negrel/webpush` a renvoyé 403 en environnement Claude Code, contourné via `https://raw.githubusercontent.com/negrel/webpush/master/mod.ts`) plutôt que le package npm `web-push` (import `https://esm.sh/web-push@…?target=deno`). **Vérifié en local via `supabase functions serve`** : `web-push` échoue avec `Not implemented: crypto.ECDH` dans l'Edge Runtime (basé sur Node `crypto`, absent de ce runtime Deno) ; `@negrel/webpush` fonctionne (basé sur `crypto.subtle`, disponible). Conséquence assumée : les clés VAPID sont des paires JWK propres à cette librairie (générées via son propre script, pas via le CLI `web-push`), voir *Web Push — génération des clés VAPID* ci-dessus. `send-notifications` a été entièrement réécrite (le stub précédent visait Expo Push, pertinent pour le mobile v2, pas le web).
 - **ADR-019** *(Phase 10)* : remboursement réglé = **nouvelle transaction de revenu liée** (`settled_transaction_id`), pas une mutation de la dépense d'origine. Alternative rejetée : changer le `type`/`amount` de la transaction existante — aurait cassé son `amount_eur` gelé (ADR-005) et son historique d'édition. Détection de catégorie volontairement **sans IA/LLM** (règles de mots-clés + historique du marchand) — déterministe, testable à 100 % en Vitest, aucune latence/coût d'appel externe, et le brief produit l'excluait explicitement.
+- **ADR-020** *(Phase 11)* : virement interne = **une seule ligne de transaction** (`account_id` source + `to_account_id` destination), pas deux lignes liées. Alternative rejetée : deux transactions liées façon remboursement (ADR-019) — aurait dupliqué chaque virement et compliqué `calculateTotals`/`calculateBalance` (déjà conçus pour ignorer `'transfer'`, Phase 3) sans bénéfice, un virement n'étant ni un revenu ni une dépense mais un simple déplacement entre deux comptes du même utilisateur. Réutilise la valeur `transaction_type = 'transfer'` de l'enum d'origine, jamais exploitée jusqu'ici. `investments` reste **volontairement sans `account_id`** : un portefeuille de placements n'est pas un compte bancaire, et coupler les deux aurait forcé soit un compte fictif par courtier soit une FK optionnelle sans réelle utilité — le patrimoine (`NetWorthTile`) reste affiché en entier quel que soit le filtre de compte choisi.
 
 ---
 
@@ -358,6 +370,7 @@ Prochaine étape : backlog v2 (voir ci-dessous) — pas de v1.2/Phase 11 planifi
 - **CI E2E : épingler la CLI Supabase (`supabase/setup-cli@v1` → `version: 2.75.0`), jamais `latest`.** Avec `latest`, `createGoalAction`/`createBudgetAction`/`createTransactionAction` échouaient de façon reproductible avec « Espace introuvable » juste après un signup frais (le trigger `on_auth_user_created` semblait ne pas avoir fini de créer le workspace), uniquement en CI — jamais en local, y compris en reproduisant un `supabase db reset` à froid en boucle. Ne monter la version qu'après l'avoir revérifiée manuellement.
 - **Le build « env placeholder » (étape CI-équivalente de la validation locale) contamine ensuite tout run E2E local si on réutilise le même `.next`.** Next.js inline les variables `NEXT_PUBLIC_*` dans le bundle **à la compilation**, y compris côté Server Actions (pas seulement le bundle navigateur) — un `pnpm turbo build` lancé avec `NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co` produit un `.next` qui pointe vers ce faux host, même en `next start`. Le `webServer` de Playwright (`reuseExistingServer: true` en local) peut alors réutiliser silencieusement ce serveur cassé. **Toujours refaire un `rm -rf apps/web/.next && pnpm --filter @fintrack/web build` sans l'override placeholder juste avant `pnpm exec playwright test`** — l'étape 3 (build placeholder) et l'étape 5 (E2E) de la séquence de validation ne doivent jamais partager le même `.next`.
 - **Contraste WCAG AA du token `--success` retombé sous le seuil à l'usage réel (Phase 10).** `--success` avait été calibré pour du texte large (`text-xl`, barre de progression budget) ; la nouvelle ligne de totaux mensuels l'utilisait en `text-sm` (14px, seuil 4,5:1, pas 3:1) et n'atteignait que 3,72:1 — trouvé par le scan axe existant sur le dialog de saisie rapide (arrière-plan visible derrière la modale), pas par une relecture. Confirme ADR-017 : re-scanner systématiquement, ne jamais supposer qu'un token déjà utilisé ailleurs est sûr à un nouveau poids/taille. `--success` light passé de `oklch(0.59 0.13 150)` à `oklch(0.5 0.13 150)` (calculé pour ≥4,5:1 sur fond page **et** carte blanche, marge vérifiée par script).
+- **`pnpm dlx supabase gen types … > database.types.ts` peut corrompre le fichier si la CLI écrit une ligne de statut sur stdout (pas stderr) au premier run** (Phase 11 — observé : `Connecting to db 5432` en tête de fichier, `tsc` a immédiatement échoué avec des erreurs de syntaxe sur la ligne 1). Le run suivant repasse par le cache CLI et n'émet plus cette ligne. **Toujours vérifier `head -3 database.types.ts` juste après régénération** (doit commencer par `export type Json =`) avant de committer ; si pollué, relancer la commande (ou rediriger stderr séparément : `... > database.types.ts 2>/tmp/gen-types.log`).
 
 ---
 
