@@ -62,9 +62,13 @@ fi
 ok "Supabase actif"
 
 if [ "$RESET_DB" = true ]; then
-  warn "--reset demandé : wipe + réapplication des migrations + seed…"
+  warn "--reset demandé : sauvegarde des comptes existants avant le wipe…"
+  "$ROOT_DIR/scripts/db-backup.sh"
+  warn "Wipe + réapplication des migrations + seed…"
   supabase db reset
-  ok "Base réinitialisée"
+  info "Restauration des comptes sauvegardés…"
+  "$ROOT_DIR/scripts/db-restore.sh"
+  ok "Base réinitialisée, comptes restaurés"
 fi
 
 # ─── 4. .env.local (créé si absent, à partir des clés Supabase locales) ──
