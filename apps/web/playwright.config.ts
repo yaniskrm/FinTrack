@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3000;
+// Deliberately NOT 3000 — that's reserved for a human's own `pnpm dev`
+// session. E2E must never compete for it (killing it, or overwriting its
+// `.next` mid-build corrupts a running dev server — see CLAUDE.md pièges
+// connus). NEXT_DIST_DIR keeps the build output separate too; set it
+// whenever building for this config (locally or in CI).
+const PORT = 3100;
 const baseURL = `http://127.0.0.1:${String(PORT)}`;
 
 export default defineConfig({
@@ -20,12 +25,13 @@ export default defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    // Reuses an already-running dev/start server if one answers on the port
-    // (e.g. scripts/dev-restart.sh) — otherwise starts a production server,
-    // which requires `next build` to have run first.
+    // Reuses an already-running server on this port (e.g. a previous
+    // `playwright test --ui` session) — otherwise starts one, which requires
+    // `next build` to have run first with the same NEXT_DIST_DIR.
     command: "pnpm start",
     url: `${baseURL}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: { PORT: String(PORT) },
   },
 });
