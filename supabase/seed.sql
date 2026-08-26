@@ -176,3 +176,48 @@ insert into exchange_rates (currency, rate_to_eur) values
 on conflict (currency) do update set
   rate_to_eur = excluded.rate_to_eur,
   updated_at = now();
+
+-- ============================================================
+-- Compte de démo local — identifiants stables
+-- ============================================================
+-- Le login manuel qu'on se crée soi-même (`signup`) ne survit PAS à un
+-- `supabase db reset` : la base locale est aussi celle utilisée par la
+-- suite E2E Playwright (des centaines de comptes jetables) et se fait
+-- régulièrement réinitialiser pendant le développement de migrations —
+-- ce n'est pas de la corruption, c'est le comportement attendu d'une base
+-- de dev partagée. Ce compte, lui, est recréé à chaque `db reset`/`start`
+-- via ce script : toujours disponible, mots de passe oublié ou pas
+-- (le reset mot de passe n'envoie de toute façon pas de vrai email en
+-- local — Inbucket seulement).
+--
+--   email    demo@fintrack.local
+--   password demo1234
+--
+-- Ne JAMAIS committer un seed.sql équivalent pointant vers une base de
+-- prod — ce fichier ne tourne que localement (`supabase db reset`/`start`).
+do $$
+declare
+  v_user_id uuid := gen_random_uuid();
+begin
+  if not exists (select 1 from auth.users where email = 'demo@fintrack.local') then
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at, confirmation_token, recovery_token,
+      email_change_token_new, email_change
+    ) values (
+      '00000000-0000-0000-0000-000000000000', v_user_id, 'authenticated', 'authenticated',
+      'demo@fintrack.local', crypt('demo1234', gen_salt('bf')),
+      now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+      now(), now(), '', '', '', ''
+    );
+
+    insert into auth.identities (
+      provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+    ) values (
+      v_user_id::text, v_user_id,
+      jsonb_build_object('sub', v_user_id::text, 'email', 'demo@fintrack.local'),
+      'email', now(), now(), now()
+    );
+  end if;
+end $$;
