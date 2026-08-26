@@ -115,6 +115,11 @@ jobs:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
     needs: [quality, unit-tests, build-web]
+    env:
+      # Matches apps/web/playwright.config.ts — keeps this job's own build
+      # output separate from a plain `pnpm build`'s `.next` (irrelevant on an
+      # ephemeral runner, but keeps local/CI behavior identical).
+      NEXT_DIST_DIR: .next-verify
     steps:
       - uses: actions/checkout@v4
 
