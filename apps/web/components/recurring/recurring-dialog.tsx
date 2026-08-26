@@ -8,6 +8,7 @@ import { recurringInputSchema } from "@fintrack/core";
 import type { RecurringFormValues } from "@fintrack/core";
 import { useCreateRecurringRule, useUpdateRecurringRule } from "../../hooks/use-recurring";
 import type { CategoryRow } from "../../lib/transactions/types";
+import type { AccountRow } from "../../lib/accounts/types";
 import {
   Dialog,
   DialogContent,
@@ -36,12 +37,13 @@ const FREQUENCY_OPTIONS = [
 ] as const;
 
 const NO_CATEGORY = "none";
+const NO_DESTINATION = "none";
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function emptyDefaults(): DefaultValues<RecurringFormValues> {
+function emptyDefaults(accounts: AccountRow[]): DefaultValues<RecurringFormValues> {
   return {
     currency: "EUR",
     type: "expense",
@@ -50,6 +52,8 @@ function emptyDefaults(): DefaultValues<RecurringFormValues> {
     frequency: "monthly",
     startDate: todayISO(),
     endDate: null,
+    accountId: accounts.filter((a) => a.is_active)[0]?.id ?? accounts[0]?.id ?? "",
+    toAccountId: null,
   };
 }
 
@@ -57,12 +61,14 @@ export function RecurringDialog({
   open,
   onOpenChange,
   categories,
+  accounts,
   editId,
   initialValues,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   categories: CategoryRow[];
+  accounts: AccountRow[];
   editId?: string | undefined;
   initialValues?: DefaultValues<RecurringFormValues> | undefined;
 }) {
@@ -70,28 +76,34 @@ export function RecurringDialog({
   const update = useUpdateRecurringRule();
   const isPending = create.isPending || update.isPending;
 
+  const activeAccounts = accounts.filter((a) => a.is_active);
+
   const {
     register,
     handleSubmit,
     control,
     reset,
+    watch,
     formState: { errors },
   } = useForm<RecurringFormValues>({
     resolver: zodResolver(recurringInputSchema),
-    defaultValues: emptyDefaults(),
+    defaultValues: emptyDefaults(accounts),
   });
 
   useEffect(() => {
     if (open) {
-      reset(initialValues ?? emptyDefaults());
+      reset(initialValues ?? emptyDefaults(accounts));
     }
   }, [open, initialValues, reset]);
+
+  const type = watch("type");
+  const accountId = watch("accountId");
 
   const onSubmit = handleSubmit((values) => {
     const settle = {
       onSuccess: () => {
         onOpenChange(false);
-        reset(emptyDefaults());
+        reset(emptyDefaults(accounts));
       },
     };
     if (editId) {
@@ -162,6 +174,65 @@ export function RecurringDialog({
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="account">{type === "transfer" ? "Depuis" : "Compte"}</Label>
+              <Controller
+                control={control}
+                name="accountId"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="account">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeAccounts.map((acc) => (
+                        <SelectItem key={acc.id} value={acc.id}>
+                          {acc.icon} {acc.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {type === "transfer" && (
+              <div className="space-y-2">
+                <Label htmlFor="toAccount">Vers</Label>
+                <Controller
+                  control={control}
+                  name="toAccountId"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? NO_DESTINATION}
+                      onValueChange={(v) => {
+                        field.onChange(v === NO_DESTINATION ? null : v);
+                      }}
+                    >
+                      <SelectTrigger id="toAccount">
+                        <SelectValue placeholder="Choisir…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_DESTINATION} disabled>
+                          Choisir…
+                        </SelectItem>
+                        {activeAccounts
+                          .filter((acc) => acc.id !== accountId)
+                          .map((acc) => (
+                            <SelectItem key={acc.id} value={acc.id}>
+                              {acc.icon} {acc.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            )}
+          </div>
+          {errors.toAccountId && <p className="text-sm text-destructive">{errors.toAccountId.message}</p>}
 
           <div className="grid grid-cols-[1fr_9rem] gap-3">
             <div className="space-y-2">

@@ -9,10 +9,17 @@ export const metadata: Metadata = {
 export default async function SubscriptionsPage() {
   const supabase = await createClient();
 
-  const [{ data: rules }, { data: categories }] = await Promise.all([
+  const [{ data: rules }, { data: categories }, { data: accounts }] = await Promise.all([
     supabase.from("recurring_rules").select("*").order("next_occurrence", { ascending: true }),
     supabase.from("categories").select("*").order("name"),
+    supabase.from("accounts").select("*").order("created_at", { ascending: true }),
   ]);
 
-  return <RecurringView initialRules={rules ?? []} initialCategories={categories ?? []} />;
+  return (
+    <RecurringView
+      initialRules={rules ?? []}
+      initialCategories={categories ?? []}
+      initialAccounts={accounts ?? []}
+    />
+  );
 }

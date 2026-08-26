@@ -5,6 +5,8 @@ import type { Transaction } from "../types/index.js";
 const makeTx = (overrides: Partial<Transaction>): Transaction => ({
   id: "1",
   workspace_id: "ws1",
+  account_id: "acc1",
+  to_account_id: null,
   category_id: null,
   amount: 100,
   currency: "EUR",

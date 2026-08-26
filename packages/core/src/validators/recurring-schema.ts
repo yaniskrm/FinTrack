@@ -20,10 +20,20 @@ export const recurringInputSchema = z
     frequency: recurringFrequencySchema,
     startDate: z.string().regex(ISO_DATE, "Date invalide (AAAA-MM-JJ)"),
     endDate: z.string().regex(ISO_DATE, "Date invalide (AAAA-MM-JJ)").nullable(),
+    accountId: z.uuid("Compte requis"),
+    toAccountId: z.uuid().nullable(),
   })
   .refine((v) => v.endDate === null || v.endDate > v.startDate, {
     message: "La date de fin doit être après la date de début",
     path: ["endDate"],
+  })
+  .refine((v) => (v.type === "transfer") === (v.toAccountId !== null), {
+    message: "Un virement doit avoir un compte de destination",
+    path: ["toAccountId"],
+  })
+  .refine((v) => v.toAccountId === null || v.toAccountId !== v.accountId, {
+    message: "Le compte de destination doit être différent du compte source",
+    path: ["toAccountId"],
   });
 
 export type RecurringFormValues = z.infer<typeof recurringInputSchema>;

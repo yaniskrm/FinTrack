@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { transactionInputSchema } from "./transaction-schema.js";
 
+const ACCOUNT_A = "11111111-1111-4111-8111-111111111111";
+const ACCOUNT_B = "22222222-2222-4222-8222-222222222222";
+
 const valid = {
   amount: 12.5,
   currency: "EUR",
@@ -12,6 +15,8 @@ const valid = {
   date: "2026-08-22",
   markAsReimbursable: false,
   reimbursementContact: null,
+  accountId: ACCOUNT_A,
+  toAccountId: null,
 };
 
 describe("transactionInputSchema", () => {
@@ -74,5 +79,43 @@ describe("transactionInputSchema", () => {
 
   it("rejects a merchant longer than 100 chars", () => {
     expect(transactionInputSchema.safeParse({ ...valid, merchant: "x".repeat(101) }).success).toBe(false);
+  });
+
+  it("rejects a missing accountId", () => {
+    expect(transactionInputSchema.safeParse({ ...valid, accountId: undefined }).success).toBe(false);
+  });
+
+  it("rejects a transfer without a destination account", () => {
+    expect(transactionInputSchema.safeParse({ ...valid, type: "transfer", toAccountId: null }).success).toBe(
+      false,
+    );
+  });
+
+  it("rejects a non-transfer with a destination account set", () => {
+    expect(
+      transactionInputSchema.safeParse({ ...valid, type: "expense", toAccountId: ACCOUNT_B }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a transfer whose destination equals its source", () => {
+    expect(
+      transactionInputSchema.safeParse({
+        ...valid,
+        type: "transfer",
+        accountId: ACCOUNT_A,
+        toAccountId: ACCOUNT_A,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts a transfer with a distinct destination account", () => {
+    expect(
+      transactionInputSchema.safeParse({
+        ...valid,
+        type: "transfer",
+        accountId: ACCOUNT_A,
+        toAccountId: ACCOUNT_B,
+      }).success,
+    ).toBe(true);
   });
 });

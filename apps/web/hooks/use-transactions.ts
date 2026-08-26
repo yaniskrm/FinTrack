@@ -28,6 +28,8 @@ function optimisticRow(values: TransactionFormValues): TransactionRow {
   return {
     id: `optimistic-${crypto.randomUUID()}`,
     workspace_id: "",
+    account_id: values.accountId,
+    to_account_id: values.toAccountId,
     category_id: values.categoryId,
     amount: values.amount,
     currency: values.currency,
@@ -106,6 +108,8 @@ export function useUpdateTransaction() {
         row.id === id
           ? {
               ...row,
+              account_id: values.accountId,
+              to_account_id: values.toAccountId,
               category_id: values.categoryId,
               amount: values.amount,
               currency: values.currency,

@@ -11,11 +11,16 @@ import {
   useSettleReimbursement,
   useTransactions,
 } from "../../hooks/use-transactions";
+import { useAccounts } from "../../hooks/use-accounts";
 import type { CategoryRow, TransactionRow } from "../../lib/transactions/types";
+import type { AccountRow } from "../../lib/accounts/types";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { TransactionDialog } from "./transaction-dialog";
+
+const ALL_ACCOUNTS = "all";
 
 interface DialogState {
   open: boolean;
@@ -35,6 +40,8 @@ function toFormValues(row: TransactionRow): DefaultValues<TransactionFormValues>
     date: row.date,
     markAsReimbursable: row.reimbursement_status !== "none",
     reimbursementContact: row.reimbursement_contact,
+    accountId: row.account_id,
+    toAccountId: row.to_account_id,
   };
 }
 
@@ -63,29 +70,40 @@ function shiftMonth(key: string, delta: number): string {
 export function TransactionsView({
   initialTransactions,
   initialCategories,
+  initialAccounts,
   defaultCurrency = "EUR",
 }: {
   initialTransactions: TransactionRow[];
   initialCategories: CategoryRow[];
+  initialAccounts: AccountRow[];
   defaultCurrency?: Currency;
 }) {
   const { data: transactions } = useTransactions(initialTransactions);
   const { data: categories } = useCategories(initialCategories);
+  const { data: accounts } = useAccounts(initialAccounts);
   const deleteTransaction = useDeleteTransaction();
   const settleReimbursement = useSettleReimbursement();
 
   const [dialog, setDialog] = useState<DialogState>({ open: false });
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
   const [month, setMonth] = useState(() => monthKey(new Date().toISOString()));
+  const [selectedAccountId, setSelectedAccountId] = useState<string>(ALL_ACCOUNTS);
 
-  const categoryById = useMemo(
-    () => new Map(categories.map((c) => [c.id, c])),
-    [categories],
-  );
+  const categoryById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const accountById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+
+  // A transfer touches two accounts — filtering to one of them still shows
+  // it (money either left or arrived there), same as a real bank statement.
+  const accountFilteredTransactions = useMemo(() => {
+    if (selectedAccountId === ALL_ACCOUNTS) return transactions;
+    return transactions.filter(
+      (tx) => tx.account_id === selectedAccountId || tx.to_account_id === selectedAccountId,
+    );
+  }, [transactions, selectedAccountId]);
 
   const monthTransactions = useMemo(
-    () => transactions.filter((tx) => monthKey(tx.date) === month),
-    [transactions, month],
+    () => accountFilteredTransactions.filter((tx) => monthKey(tx.date) === month),
+    [accountFilteredTransactions, month],
   );
 
   const monthTotals = useMemo(
@@ -94,8 +112,8 @@ export function TransactionsView({
   );
 
   const reimbursements = useMemo(
-    () => calculateOutstandingReimbursements(transactions as unknown as Transaction[]),
-    [transactions],
+    () => calculateOutstandingReimbursements(accountFilteredTransactions as unknown as Transaction[]),
+    [accountFilteredTransactions],
   );
 
   // Keyboard shortcut: "n" opens the quick-entry dialog (unless typing).
@@ -138,6 +156,20 @@ export function TransactionsView({
           </kbd>
         </Button>
       </div>
+
+      <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+        <SelectTrigger aria-label="Compte" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ALL_ACCOUNTS}>Tous les comptes</SelectItem>
+          {accounts.map((acc) => (
+            <SelectItem key={acc.id} value={acc.id}>
+              {acc.icon} {acc.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {reimbursements.items.length > 0 && (
         <Card className="gap-3 p-4">
@@ -241,6 +273,8 @@ export function TransactionsView({
         <Card className="gap-0 divide-y py-0">
           {monthTransactions.map((tx) => {
             const category = tx.category_id ? categoryById.get(tx.category_id) : undefined;
+            const account = accountById.get(tx.account_id);
+            const toAccount = tx.to_account_id ? accountById.get(tx.to_account_id) : undefined;
             const sign = tx.type === "expense" ? "-" : tx.type === "income" ? "+" : "";
             return (
               <div key={tx.id} className="group flex items-center gap-3 px-4 py-3">
@@ -272,7 +306,14 @@ export function TransactionsView({
                     )}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {category?.name ?? "Sans catégorie"} · {formatDate(tx.date)}
+                    {tx.type === "transfer"
+                      ? `${account?.icon ?? ""} ${account?.name ?? "?"} → ${toAccount?.icon ?? ""} ${toAccount?.name ?? "?"}`
+                      : category?.name ?? "Sans catégorie"}
+                    {" · "}
+                    {selectedAccountId === ALL_ACCOUNTS && tx.type !== "transfer" && account
+                      ? `${account.name} · `
+                      : ""}
+                    {formatDate(tx.date)}
                   </p>
                 </div>
 
@@ -374,6 +415,7 @@ export function TransactionsView({
         }}
         categories={categories}
         transactions={transactions}
+        accounts={accounts}
         defaultCurrency={defaultCurrency}
         editId={dialog.editId}
         initialValues={dialog.initialValues}
