@@ -78,4 +78,16 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     await expectNoViolations(page);
   });
+
+  test("import page (with review table)", async ({ page }) => {
+    await signUpAndLogIn(page);
+    await page.goto("/transactions/import");
+    await page.setInputFiles("#import-file", {
+      name: "releve.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from("Date,Description,Amount\n2026-08-01,Courses,-45.90"),
+    });
+    await expect(page.getByText("1 ligne détectée")).toBeVisible();
+    await expectNoViolations(page);
+  });
 });
