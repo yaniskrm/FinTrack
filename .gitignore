@@ -3,6 +3,10 @@ node_modules/
 .pnp
 .pnp.js
 
+# Hide Numbers files and CSV files that may contain sensitive data
+*.numbers
+releve_*.csv
+
 # Build outputs
 dist/
 build/

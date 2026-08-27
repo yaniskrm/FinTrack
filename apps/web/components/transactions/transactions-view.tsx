@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DefaultValues } from "react-hook-form";
-import { ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Pencil, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { calculateOutstandingReimbursements, calculateTotals, formatCurrency } from "@fintrack/core";
 import type { Currency, Transaction, TransactionFormValues } from "@fintrack/core";
 import {
@@ -144,17 +145,25 @@ export function TransactionsView({
             {transactions.length} opération{transactions.length > 1 ? "s" : ""}
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setDialog({ open: true });
-          }}
-        >
-          <Plus className="size-4" />
-          Ajouter
-          <kbd className="ml-1 hidden rounded bg-primary-foreground/20 px-1.5 text-xs sm:inline">
-            N
-          </kbd>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/transactions/import">
+              <Upload className="size-4" />
+              Importer
+            </Link>
+          </Button>
+          <Button
+            onClick={() => {
+              setDialog({ open: true });
+            }}
+          >
+            <Plus className="size-4" />
+            Ajouter
+            <kbd className="ml-1 hidden rounded bg-primary-foreground/20 px-1.5 text-xs sm:inline">
+              N
+            </kbd>
+          </Button>
+        </div>
       </div>
 
       <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
