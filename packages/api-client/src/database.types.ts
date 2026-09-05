@@ -94,6 +94,82 @@ export type Database = {
           },
         ]
       }
+      bank_connections: {
+        Row: {
+          account_id: string | null
+          aspsp_country: string
+          aspsp_name: string
+          created_at: string
+          currency: string | null
+          enable_account_uid: string | null
+          iban: string | null
+          id: string
+          last_synced_at: string | null
+          session_id: string | null
+          state: string
+          status: Database["public"]["Enums"]["bank_connection_status"]
+          updated_at: string
+          valid_until: string | null
+          workspace_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          aspsp_country: string
+          aspsp_name: string
+          created_at?: string
+          currency?: string | null
+          enable_account_uid?: string | null
+          iban?: string | null
+          id?: string
+          last_synced_at?: string | null
+          session_id?: string | null
+          state?: string
+          status?: Database["public"]["Enums"]["bank_connection_status"]
+          updated_at?: string
+          valid_until?: string | null
+          workspace_id: string
+        }
+        Update: {
+          account_id?: string | null
+          aspsp_country?: string
+          aspsp_name?: string
+          created_at?: string
+          currency?: string | null
+          enable_account_uid?: string | null
+          iban?: string | null
+          id?: string
+          last_synced_at?: string | null
+          session_id?: string | null
+          state?: string
+          status?: Database["public"]["Enums"]["bank_connection_status"]
+          updated_at?: string
+          valid_until?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_connections_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_connections_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "exchange_rates"
+            referencedColumns: ["currency"]
+          },
+          {
+            foreignKeyName: "bank_connections_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budgets: {
         Row: {
           amount_eur: number
@@ -701,6 +777,7 @@ export type Database = {
     }
     Enums: {
       account_type: "checking" | "savings" | "investment" | "cash" | "other"
+      bank_connection_status: "pending" | "active" | "expired" | "revoked"
       budget_period: "monthly" | "yearly"
       investment_type: "etf" | "stock" | "scpi" | "savings" | "crypto" | "other"
       member_role: "owner" | "member"
@@ -838,6 +915,7 @@ export const Constants = {
   public: {
     Enums: {
       account_type: ["checking", "savings", "investment", "cash", "other"],
+      bank_connection_status: ["pending", "active", "expired", "revoked"],
       budget_period: ["monthly", "yearly"],
       investment_type: ["etf", "stock", "scpi", "savings", "crypto", "other"],
       member_role: ["owner", "member"],

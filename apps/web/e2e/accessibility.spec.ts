@@ -79,6 +79,32 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expectNoViolations(page);
   });
 
+  test("connect-bank dialog", async ({ page }) => {
+    await signUpAndLogIn(page);
+    await page.goto("/settings/accounts");
+    await page.getByRole("button", { name: "Connecter ma banque" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    // Without ENABLE_BANKING_* configured (always true in CI), opening this
+    // dialog fires an error toast immediately. Sonner's enter animation
+    // blends through low-contrast intermediate colors — axe caught a real
+    // *transitional* frame, not the toast's settled state (confirmed: every
+    // observed failure had a different, grayish blended color, never the
+    // same fixed pair twice). A fixed `waitForTimeout` was still flaky
+    // under CI-like load (~25% failure rate even at 500ms), so wait for the
+    // toast's actual Web Animations to finish instead of guessing a delay.
+    const toast = page.locator("[data-sonner-toast]").first();
+    const toastAppeared = await toast
+      .waitFor({ state: "visible", timeout: 2000 })
+      .then(() => true)
+      .catch(() => false);
+    if (toastAppeared) {
+      await toast
+        .evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)))
+        .catch(() => {});
+    }
+    await expectNoViolations(page);
+  });
+
   test("import page (with review table)", async ({ page }) => {
     await signUpAndLogIn(page);
     await page.goto("/transactions/import");

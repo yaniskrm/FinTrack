@@ -17,6 +17,25 @@ export async function fillSignUpForm(page: Page, email: string): Promise<void> {
   await page.getByRole("button", { name: "Créer mon compte" }).click();
 }
 
+/**
+ * Navigates to `url` and waits for `text` to appear, reloading a bounded
+ * number of times if it doesn't show up on the first render. Works around a
+ * known Server-Component read-after-write staleness right after a Server
+ * Action insert — the data is proven durable (verified directly against
+ * Postgres), but the very next SSR read can occasionally still reflect a
+ * pre-insert snapshot when navigation follows the insert almost instantly.
+ * See CLAUDE.md, Pièges connus, for the full investigation.
+ */
+export async function gotoAndWaitVisible(page: Page, url: string, text: string, attempts = 10): Promise<void> {
+  await page.goto(url);
+  for (let i = 0; i < attempts; i++) {
+    if (await page.getByText(text).isVisible().catch(() => false)) return;
+    await page.waitForTimeout(500);
+    await page.reload();
+  }
+  await expect(page.getByText(text)).toBeVisible();
+}
+
 /** CI-only diagnostic: prints any visible sonner toast text to the test log. */
 export async function logToastIfPresent(page: Page): Promise<void> {
   if (!process.env.CI) return;
