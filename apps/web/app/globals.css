@@ -49,6 +49,19 @@
   --chart-expense: #e34948;
 }
 
+/* sonner's own `richColors` light-theme error text (hsl(360 100% 45%),
+   #e60000) only reaches 4.34:1 against its error background — just under
+   the 4.5:1 WCAG AA floor for normal text. Found via axe on the connect-bank
+   dialog (Phase 13), the first a11y-scanned dialog that reliably shows an
+   error toast the instant it opens. Same fix pattern as --success/ADR-017:
+   darken until the ratio clears the threshold (verified ~8.3:1 here).
+   `!important` because sonner sets this on the same `[data-sonner-toaster]`
+   selector at matching specificity — plain source order isn't reliable
+   against a bundled third-party stylesheet. */
+[data-sonner-toaster] {
+  --error-text: hsl(360 100% 30%) !important;
+}
+
 .dark {
   /* Warm charcoal (not pure black) to sit under the gold */
   --background: oklch(0.185 0.006 75);
