@@ -1,28 +1,30 @@
 import { expect, test } from "@playwright/test";
-import { logToastIfPresent, signUpAndLogIn } from "./helpers";
+import { gotoAndWaitVisible, logToastIfPresent, signUpAndLogIn } from "./helpers";
 
-const SAMPLE_CSV =
-  "Date,Description,Amount\n2026-08-01,Courses E2E,-45.90\n2026-08-02,Salaire E2E,2000.00";
+// /transactions defaults to the *current* calendar month (see
+// transactions-view.tsx) — hardcoding a past month here silently broke this
+// suite the moment real time crossed into a new month (found while
+// validating Phase 13, unrelated to it: the fixture used August 2026 dates,
+// which stopped being "this month" on 2026-09-01). Always anchor to today.
+function isoDate(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+
+const SAMPLE_CSV = `Date,Description,Amount\n${isoDate(2)},Courses E2E,-45.90\n${isoDate(1)},Salaire E2E,2000.00`;
 
 test("a user can import a bank statement CSV", async ({ page, browserName }) => {
-  // WebKit-only flake, investigated thoroughly rather than papered over: the
-  // Server Action insert commits immediately (verified directly against
-  // Postgres via psql — the row is there, correct, an instant after the
-  // toast fires), yet the very next Server Component read on /transactions
-  // sometimes still renders 0 rows, but only when that navigation follows
-  // the insert with ~zero delay, which only fast programmatic Playwright
-  // navigation ever does. Ruled out: HTTP caching (the response already
-  // sends cache-control: no-store), Next's fetch Data Cache (forcing
-  // no-store on every supabase-js fetch made no difference), `networkidle`
-  // after the goto (no difference — the render is fully settled, just
-  // wrong), and a bounded reload-and-retry loop (still failed after 5
-  // reloads / 2s+ of retrying in this exact test, despite an almost
-  // identical standalone repro passing reliably with far less delay).
-  // Chromium never reproduces it, in dozens of runs. Given the underlying
-  // data is proven correct and durable, and only an engine-specific,
-  // faster-than-any-human navigation timing was ever implicated, this is
-  // scoped to chromium rather than continuing to chase it further — same
-  // treatment as the Push API's own webkit limitation (see CLAUDE.md).
+  // WebKit-only flake, investigated thoroughly in Phase 12 rather than
+  // papered over: the Server Action insert commits immediately (verified
+  // directly against Postgres via psql), yet the very next Server Component
+  // read on /transactions sometimes still renders 0 rows when navigation
+  // follows the insert almost instantly — reproduced again today even with
+  // a bounded reload-and-retry loop (gotoAndWaitVisible, 10 attempts).
+  // Chromium remains unaffected across many runs (re-verified while
+  // building Phase 13 — a separate, since-fixed bug involving hardcoded
+  // fixture dates falling out of the current-month default view was
+  // initially mistaken for a regression of this same flake, see CLAUDE.md).
   test.skip(browserName === "webkit", "webkit-only flake — see comment above, tracked in CLAUDE.md");
 
   await signUpAndLogIn(page);
@@ -38,8 +40,7 @@ test("a user can import a bank statement CSV", async ({ page, browserName }) => 
   await page.getByRole("button", { name: /Importer 2/ }).click();
   await logToastIfPresent(page);
 
-  await page.goto("/transactions");
-  await expect(page.getByText("Courses E2E")).toBeVisible();
+  await gotoAndWaitVisible(page, "/transactions", "Courses E2E");
   await expect(page.getByText("Salaire E2E")).toBeVisible();
 });
 
@@ -60,8 +61,7 @@ test("a user can exclude a row before importing", async ({ page, browserName }) 
   await page.getByRole("button", { name: /Importer 1/ }).click();
   await logToastIfPresent(page);
 
-  await page.goto("/transactions");
-  await expect(page.getByText("Salaire E2E")).toBeVisible();
+  await gotoAndWaitVisible(page, "/transactions", "Salaire E2E");
   await expect(page.getByText("Courses E2E")).toBeHidden();
 });
 

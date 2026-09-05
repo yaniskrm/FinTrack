@@ -27,6 +27,14 @@ export * from "./import/parse-csv.js";
 export * from "./import/bank-statement.js";
 export * from "./import/duplicates.js";
 
+// Banking (Enable Banking — Open Banking, Phase 13). Only the pure,
+// client-safe pieces (normalization, response shapes) — signing/fetching
+// (jwt.ts/client.ts) import `node:crypto` and live behind the "./server"
+// entry point instead (see server.ts), so a Client Component pulling in
+// *anything* from this barrel never drags a Node builtin into its bundle.
+export * from "./banking/normalize.js";
+export * from "./banking/types.js";
+
 // Validators
 export * from "./validators/auth.js";
 export * from "./validators/mfa.js";

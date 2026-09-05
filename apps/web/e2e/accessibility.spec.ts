@@ -79,6 +79,14 @@ test.describe("accessibility (axe, WCAG 2 A/AA)", () => {
     await expectNoViolations(page);
   });
 
+  test("connect-bank dialog", async ({ page }) => {
+    await signUpAndLogIn(page);
+    await page.goto("/settings/accounts");
+    await page.getByRole("button", { name: "Connecter ma banque" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoViolations(page);
+  });
+
   test("import page (with review table)", async ({ page }) => {
     await signUpAndLogIn(page);
     await page.goto("/transactions/import");

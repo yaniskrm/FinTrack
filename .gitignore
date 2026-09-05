@@ -7,6 +7,10 @@ node_modules/
 *.numbers
 releve_*.csv
 
+# Enable Banking private key (Phase 13) — downloaded from the Control Panel,
+# never committed. The app reads its content from an env var, not this file.
+*.pem
+
 # Build outputs
 dist/
 build/
