@@ -17,10 +17,6 @@ import type { BankConnectionRow } from "../lib/banking/types";
 
 export const BANK_CONNECTIONS_KEY = ["bank-connections"] as const;
 
-function currentOrigin(): string {
-  return window.location.origin;
-}
-
 export function useBankConnections(initialData: BankConnectionRow[]) {
   return useQuery({ queryKey: BANK_CONNECTIONS_KEY, queryFn: fetchBankConnections, initialData });
 }
@@ -41,7 +37,7 @@ export function useListAspsps() {
 export function useStartBankConnection() {
   return useMutation({
     mutationFn: async ({ aspspName, aspspCountry }: { aspspName: string; aspspCountry: string }) => {
-      const result = await startBankConnectionAction(aspspName, aspspCountry, currentOrigin());
+      const result = await startBankConnectionAction(aspspName, aspspCountry);
       if (!result.ok) throw new Error(result.error);
       return result.data;
     },
@@ -57,7 +53,7 @@ export function useStartBankConnection() {
 export function useReconnectBankConnection() {
   return useMutation({
     mutationFn: async (connectionId: string) => {
-      const result = await reconnectBankConnectionAction(connectionId, currentOrigin());
+      const result = await reconnectBankConnectionAction(connectionId);
       if (!result.ok) throw new Error(result.error);
       return result.data;
     },
