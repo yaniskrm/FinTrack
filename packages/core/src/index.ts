@@ -34,6 +34,8 @@ export * from "./import/duplicates.js";
 // *anything* from this barrel never drags a Node builtin into its bundle.
 export * from "./banking/normalize.js";
 export * from "./banking/types.js";
+export * from "./banking/redirect-url.js";
+export * from "./banking/config.js";
 
 // Validators
 export * from "./validators/auth.js";

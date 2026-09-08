@@ -1,6 +1,6 @@
 "use server";
 
-import { suggestCategoryId, findLikelyDuplicates } from "@fintrack/core";
+import { suggestCategoryId, findLikelyDuplicates, buildBankingRedirectUrl } from "@fintrack/core";
 import type { Category, Currency, Transaction } from "@fintrack/core";
 import {
   deleteSession,
@@ -22,6 +22,16 @@ export type BankingResult<T> = { ok: true; data: T } | { ok: false; error: strin
 // reasonable re-consent cadence for a personal-finance app.
 const CONSENT_VALIDITY_DAYS = 90;
 
+// Built from a configured base URL, never from a request's live Origin —
+// must match, character for character, the URL whitelisted for this
+// application in the Enable Banking Control Panel. Same env var in every
+// environment; only its *value* differs (http://localhost:3000 locally
+// against a Sandbox application, the real https domain in production
+// against a Production application — see CLAUDE.md, Open Banking).
+function bankingRedirectUrl(): string {
+  return buildBankingRedirectUrl(process.env["NEXT_PUBLIC_SITE_URL"] ?? "http://localhost:3000");
+}
+
 async function requireWorkspaceId(): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase.from("workspaces").select("id").limit(1).maybeSingle();
@@ -40,7 +50,6 @@ export async function listAspspsForCountryAction(country: string): Promise<Banki
 export async function startBankConnectionAction(
   aspspName: string,
   aspspCountry: string,
-  redirectOrigin: string,
 ): Promise<BankingResult<{ url: string }>> {
   const workspaceId = await requireWorkspaceId();
   if (!workspaceId) return { ok: false, error: "Espace introuvable." };
@@ -63,7 +72,7 @@ export async function startBankConnectionAction(
       {
         aspspName,
         aspspCountry,
-        redirectUrl: `${redirectOrigin}/auth/callback/banking`,
+        redirectUrl: bankingRedirectUrl(),
         state: connection.state,
         validUntil,
       },
@@ -78,7 +87,6 @@ export async function startBankConnectionAction(
 
 export async function reconnectBankConnectionAction(
   connectionId: string,
-  redirectOrigin: string,
 ): Promise<BankingResult<{ url: string }>> {
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -103,7 +111,7 @@ export async function reconnectBankConnectionAction(
       {
         aspspName: existing.aspsp_name,
         aspspCountry: existing.aspsp_country,
-        redirectUrl: `${redirectOrigin}/auth/callback/banking`,
+        redirectUrl: bankingRedirectUrl(),
         state: updated.state,
         validUntil,
       },

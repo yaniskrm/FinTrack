@@ -219,13 +219,17 @@ Détail complet du workflow (ADR-014) et de l'historique des décisions techniqu
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `apps/web/.env.local` | Non (clé publique) | Générées par `supabase start` en local ; en prod, valeurs du dashboard Supabase. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `apps/web/.env.local` | Non (clé publique) | Notifications push — voir ci-dessous pour la générer. |
+| `NEXT_PUBLIC_SITE_URL` | `apps/web/.env.local` | Non | Base de l'URL de redirection Open Banking (Enable Banking) en plus des liens email — **doit correspondre au caractère près** à l'URL enregistrée dans le Control Panel Enable Banking pour l'application (Sandbox/Production) utilisée. Voir ci-dessous. |
+| `ENABLE_BANKING_APP_ID` / `ENABLE_BANKING_PRIVATE_KEY_BASE64` | `apps/web/.env.local` (Sandbox) / variables d'environnement Vercel (Production) | **Oui** (la clé) | Voir « Open Banking — Sandbox vs Production » ci-dessous. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secrets Edge Functions (jamais côté client) | **Oui** | Bypass RLS — usage serveur uniquement. |
 | `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Secrets Edge Functions | **Oui** (la privée) | Voir génération ci-dessous. |
 | `project_url` / `service_role_key` | Supabase Vault (`vault.create_secret`) | **Oui** | Lus par les jobs `pg_cron` (`exchange-rates`, `send-notifications`) — no-op tant qu'absents, y compris en local. |
 
 **Générer une paire de clés VAPID** (notifications push — bibliothèque [`@negrel/webpush`](https://github.com/negrel/webpush), pas le CLI `web-push` npm classique dont le format de clé est incompatible) : voir [`CLAUDE.md`](./CLAUDE.md) (section Web Push) pour la recette exacte (Edge Function one-off jetable) et le format attendu de `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` (JWK JSON, pas les chaînes base64url du CLI npm).
 
-En production, les secrets serveur (`SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY`, secrets Vault…) se configurent dans le dashboard Supabase / les variables d'environnement Vercel — jamais dans un fichier commité.
+**Open Banking — Sandbox vs Production.** Le Control Panel Enable Banking (https://enablebanking.com/cp/applications) n'accepte une URL de redirection `http://localhost` que sur une application **Sandbox**, et une URL `https` que sur une application **Production** — les deux ne peuvent jamais cohabiter sur la même application. Il faut donc deux applications distinctes : une Sandbox (redirect `http://localhost:3000/auth/callback/banking`, pour le développement local) et une Production (redirect `https://<votre-domaine>/auth/callback/banking`, pour Vercel). Les noms de variables sont les mêmes dans les deux environnements — seules les *valeurs* diffèrent : identifiants Sandbox dans `apps/web/.env.local` (avec `NEXT_PUBLIC_SITE_URL=http://localhost:3000`), identifiants Production dans les variables d'environnement Vercel (avec `NEXT_PUBLIC_SITE_URL=https://<votre-domaine>`). Une combinaison incohérente (ex. identifiants Production avec une URL non-https) échoue explicitement au démarrage du serveur (`apps/web/instrumentation.ts`) plutôt que silencieusement au premier essai de connexion bancaire.
+
+En production, les secrets serveur (`SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY`, `ENABLE_BANKING_PRIVATE_KEY_BASE64`, secrets Vault…) se configurent dans le dashboard Supabase / les variables d'environnement Vercel — jamais dans un fichier commité.
 
 ---
 
