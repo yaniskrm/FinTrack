@@ -121,7 +121,14 @@ export async function updatePasswordAction(input: {
     return { error: "Impossible de mettre à jour le mot de passe. Réessayez la procédure depuis le début." };
   }
 
-  redirect("/dashboard");
+  // Same reasoning as signInAction: a TOTP-enrolled user completing a
+  // password reset must land on /mfa, not /dashboard — deciding it here
+  // avoids relying on the middleware's own subsequent redirect, which
+  // doesn't reliably update the browser's URL bar.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const stepUpPending = aal?.currentLevel === "aal1" && aal.nextLevel === "aal2";
+
+  redirect(stepUpPending ? "/mfa" : "/dashboard");
 }
 
 export interface UpdateEmailResult {

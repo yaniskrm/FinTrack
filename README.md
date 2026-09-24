@@ -235,11 +235,13 @@ En production, les secrets serveur (`SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_
 
 ## Déploiement
 
-**Production** : https://fintrack-perso.vercel.app — projet Vercel `fintrack` (Root Directory `apps/web`, monorepo pnpm/Turborepo), base de données sur le projet Supabase hébergé (Singapore).
+**Production** : https://fintrackapp.fr — projet Vercel `fintrack` (Root Directory `apps/web`, monorepo pnpm/Turborepo), base de données sur le projet Supabase hébergé (Singapore). Domaine acheté et géré chez OVH (DNSSEC actif — à désactiver avant tout changement de serveurs de noms, pas nécessaire pour un simple changement d'enregistrement). `www.fintrackapp.fr` redirige vers l'apex ; l'ancien alias `fintrack-perso.vercel.app` reste actif en redirection.
 
-Périmètre du premier déploiement (usage personnel, volontairement minimal) : base Supabase hébergée + front Vercel. **Hors périmètre pour l'instant** : Edge Functions, secrets Vault, Enable Banking, SMTP — voir [`CLAUDE.md`](./CLAUDE.md) (section Déploiement) pour le détail et la roadmap.
+Emails d'authentification (confirmation d'inscription, reset de mot de passe) : SMTP personnalisé Resend (`smtp.resend.com:465`, domaine `fintrackapp.fr` vérifié côté Resend), configuré directement dans le dashboard Supabase — jamais via une variable d'environnement ou un fichier du repo.
 
-⚠️ **Toute modification de l'URL de production impose de mettre à jour, dans cet ordre : `NEXT_PUBLIC_SITE_URL` (variable Vercel Production, puis redéployer — figée au build), l'Auth Supabase du projet hébergé (`site_url` + `uri_allow_list`), et plus tard l'application Enable Banking Production** (son `redirect_url` doit matcher au caractère près, voir ci-dessus et `CLAUDE.md` ADR-024).
+Périmètre de ce déploiement (usage personnel, volontairement minimal) : base Supabase hébergée + front Vercel + SMTP Resend pour les emails d'auth. **Hors périmètre pour l'instant** : Edge Functions, secrets Vault, Enable Banking — voir [`CLAUDE.md`](./CLAUDE.md) (section Déploiement) pour le détail et la roadmap.
+
+⚠️ **Toute modification du domaine de production impose de mettre à jour, dans cet ordre : `NEXT_PUBLIC_SITE_URL` (variable Vercel Production, puis redéployer — figée au build), l'Auth Supabase du projet hébergé (`site_url` + `uri_allow_list`), le domaine vérifié côté Resend, et plus tard l'application Enable Banking Production** (son `redirect_url` doit matcher au caractère près, voir ci-dessus et `CLAUDE.md` ADR-024).
 
 Fichiers de config du déploiement : `.vercelignore` (racine et `apps/web/`, exclut `node_modules`/`.next`/`apps/mobile`… d'un upload autrement bien trop volumineux pour un monorepo) et `apps/web/.gitignore` (`.vercel`, `.env*`).
 
