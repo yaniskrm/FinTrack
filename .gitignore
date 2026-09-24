@@ -3,6 +3,10 @@ node_modules/
 .pnp
 .pnp.js
 
+# Vercel (project link — already ignored inside apps/web via its own .gitignore;
+# also needed at repo root since monorepo deploys are run from here)
+.vercel
+
 # Hide Numbers files and CSV files that may contain sensitive data
 *.numbers
 releve_*.csv
