@@ -14,6 +14,19 @@ Obsessions du projet : **friction zéro à la saisie**, **UI de qualité profess
 
 ---
 
+## Déploiement
+
+**Production** : https://fintrack-perso.vercel.app (Vercel, projet `fintrack`, Root Directory `apps/web` — voir *Pièges connus* pour la configuration monorepo). Base de données : projet Supabase hébergé `dgymagcuyivlujuxnolf` (Singapore), migré à jour avec `main` en Phase 13.
+
+⚠️ **Toute modification de cette URL de production impose de mettre à jour, dans cet ordre** :
+1. `NEXT_PUBLIC_SITE_URL` (variable Vercel, scope Production) — figée au build, nécessite un redéploiement.
+2. Auth Supabase du projet hébergé — `site_url` et `uri_allow_list` (via Management API ou dashboard → Authentication → URL Configuration).
+3. Plus tard, l'application Enable Banking **Production** (Phase 13, hors périmètre pour l'instant) — son `redirect_url` whitelisté au Control Panel doit matcher au caractère près (voir ADR-024).
+
+Périmètre de ce premier déploiement (volontairement minimal, usage personnel) : base Supabase hébergée + front Vercel uniquement. **Hors périmètre** : Edge Functions (`exchange-rates`, `send-notifications` — taux de change et notifications ne tournent pas encore en prod), secrets Vault, Enable Banking, SMTP (inscriptions encore en confirmation immédiate, voir Backlog v2/Pièges connus).
+
+---
+
 ## Stack technique (réel)
 
 | Couche | Technologie |
