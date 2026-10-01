@@ -45,6 +45,7 @@ function optimisticRow(values: TransactionFormValues): TransactionRow {
     reimbursement_status: values.markAsReimbursable ? "pending" : "none",
     reimbursement_contact: values.markAsReimbursable ? values.reimbursementContact : null,
     settled_transaction_id: null,
+    external_ref: null,
     created_at: now,
     updated_at: now,
   };

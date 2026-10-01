@@ -4,7 +4,9 @@ import { convertToEur, importBatchSchema } from "@fintrack/core";
 import type { Currency, ExchangeRate, ImportBatchInput } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 
-export type ImportResult = { ok: true; imported: number } | { ok: false; error: string };
+export type ImportResult =
+  | { ok: true; imported: number; duplicatesSkipped: number }
+  | { ok: false; error: string };
 
 // A rate older than this is treated as stale — mirrors freezeAmountEur in
 // ./actions.ts (kept as a separate small helper here since bulk import needs
@@ -45,7 +47,36 @@ export async function importTransactionsAction(input: ImportBatchInput): Promise
     return { ok: false, error: "Compte introuvable." };
   }
 
-  const distinctCurrencies = [...new Set(rows.map((r) => r.currency))].filter(
+  // Re-verify certain duplicates (external_ref) server-side rather than
+  // trusting the client's review-step flags, and drop a repeated
+  // external_ref within this batch too (a client bug, a second parse of the
+  // same file, or a retried request) — the row-level filter below is the
+  // primary defense; the upsert's ON CONFLICT further down is only the
+  // last-resort safety net for a genuine race between two tabs.
+  const { data: existingRefRows } = await supabase
+    .from("transactions")
+    .select("external_ref")
+    .eq("account_id", accountId)
+    .not("external_ref", "is", null);
+  const existingRefs = new Set((existingRefRows ?? []).map((r) => r.external_ref));
+
+  const seenInBatch = new Set<string>();
+  let duplicatesSkipped = 0;
+  const dedupedRows = rows.filter((row) => {
+    if (!row.externalRef) return true;
+    if (existingRefs.has(row.externalRef) || seenInBatch.has(row.externalRef)) {
+      duplicatesSkipped++;
+      return false;
+    }
+    seenInBatch.add(row.externalRef);
+    return true;
+  });
+
+  if (dedupedRows.length === 0) {
+    return { ok: false, error: "Toutes les lignes étaient déjà importées." };
+  }
+
+  const distinctCurrencies = [...new Set(dedupedRows.map((r) => r.currency))].filter(
     (c): c is Exclude<Currency, "EUR"> => c !== "EUR",
   );
   const { data: rates } =
@@ -65,10 +96,11 @@ export async function importTransactionsAction(input: ImportBatchInput): Promise
     type: "income" | "expense";
     label: string;
     date: string;
+    external_ref: string | null;
   }
 
   const toInsert: InsertRow[] = [];
-  for (const row of rows) {
+  for (const row of dedupedRows) {
     let amountEur: number;
     let rateApproximate = false;
 
@@ -95,6 +127,7 @@ export async function importTransactionsAction(input: ImportBatchInput): Promise
       type: row.type,
       label: row.label,
       date: row.date,
+      external_ref: row.externalRef,
     });
   }
 
@@ -102,9 +135,18 @@ export async function importTransactionsAction(input: ImportBatchInput): Promise
     return { ok: false, error: "Aucune ligne n'a pu être importée (taux de change indisponibles)." };
   }
 
-  const { error } = await supabase.from("transactions").insert(toInsert);
+  // onConflict + ignoreDuplicates is a safety net only (a race between two
+  // tabs importing the same file) — the real dedup already happened above,
+  // against a fresh read. NULL external_ref rows never conflict with each
+  // other (Postgres treats NULLs as distinct in a unique index), so this is
+  // a no-op for every row without a reference, same as the main filter.
+  const { data: inserted, error } = await supabase
+    .from("transactions")
+    .upsert(toInsert, { onConflict: "account_id,external_ref", ignoreDuplicates: true })
+    .select("id");
   if (error) {
     return { ok: false, error: "Import impossible." };
   }
-  return { ok: true, imported: toInsert.length };
+  const racedDuplicates = toInsert.length - inserted.length;
+  return { ok: true, imported: inserted.length, duplicatesSkipped: duplicatesSkipped + racedDuplicates };
 }
