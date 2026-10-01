@@ -25,6 +25,7 @@ export * from "./export/json.js";
 // Import (bank statements)
 export * from "./import/parse-csv.js";
 export * from "./import/bank-statement.js";
+export * from "./import/dbs.js";
 export * from "./import/duplicates.js";
 
 // Banking (Enable Banking — Open Banking, Phase 13). Only the pure,

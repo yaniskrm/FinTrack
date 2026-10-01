@@ -48,6 +48,7 @@ export interface Transaction {
   reimbursement_status: ReimbursementStatus;
   reimbursement_contact: string | null;
   settled_transaction_id: string | null;
+  external_ref: string | null; // stable, source-prefixed bank reference (e.g. "dbs:…") — see the external_ref migration
   created_at: string;
   updated_at: string;
 }

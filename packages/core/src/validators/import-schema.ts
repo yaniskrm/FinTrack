@@ -14,6 +14,7 @@ export const importRowSchema = z.object({
   type: z.enum(["income", "expense"]),
   currency: currencySchema,
   categoryId: z.uuid().nullable(),
+  externalRef: z.string().max(200).nullable(),
 });
 
 export const importBatchSchema = z.object({

@@ -21,8 +21,8 @@ describe("parseBankStatement — Revolut-shaped export", () => {
     const result = parseBankStatement(csv, "EUR");
     expect(result.error).toBeNull();
     expect(result.rows).toEqual([
-      { date: "2026-08-01", label: "Boulangerie", amount: 4.5, type: "expense", currency: "EUR" },
-      { date: "2026-08-02", label: "Recharge", amount: 100, type: "income", currency: "EUR" },
+      { date: "2026-08-01", label: "Boulangerie", amount: 4.5, type: "expense", currency: "EUR" , externalRef: null },
+      { date: "2026-08-02", label: "Recharge", amount: 100, type: "income", currency: "EUR" , externalRef: null },
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("parseBankStatement — Revolut-shaped export", () => {
     );
     const result = parseBankStatement(csv, "EUR");
     expect(result.rows).toEqual([
-      { date: "2026-08-14", label: "Frais d'abonnement", amount: 10.99, type: "expense", currency: "EUR" },
+      { date: "2026-08-14", label: "Frais d'abonnement", amount: 10.99, type: "expense", currency: "EUR" , externalRef: null },
     ]);
   });
 
@@ -98,13 +98,13 @@ describe("parseBankStatement — generic/other bank formats", () => {
     const csv = "Date;Libellé;Montant\n01/08/2026;Courses;-45,90";
     const result = parseBankStatement(csv, "EUR");
     expect(result.error).toBeNull();
-    expect(result.rows).toEqual([{ date: "2026-08-01", label: "Courses", amount: 45.9, type: "expense", currency: "EUR" }]);
+    expect(result.rows).toEqual([{ date: "2026-08-01", label: "Courses", amount: 45.9, type: "expense", currency: "EUR" , externalRef: null }]);
   });
 
   it("parses English column headers", () => {
     const csv = "Date,Description,Amount\n2026-08-01,Groceries,-45.90";
     const result = parseBankStatement(csv, "EUR");
-    expect(result.rows).toEqual([{ date: "2026-08-01", label: "Groceries", amount: 45.9, type: "expense", currency: "EUR" }]);
+    expect(result.rows).toEqual([{ date: "2026-08-01", label: "Groceries", amount: 45.9, type: "expense", currency: "EUR" , externalRef: null }]);
   });
 
   it("returns an error when required columns can't be found", () => {

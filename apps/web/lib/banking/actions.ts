@@ -1,6 +1,6 @@
 "use server";
 
-import { suggestCategoryId, findLikelyDuplicates, buildBankingRedirectUrl } from "@fintrack/core";
+import { suggestCategoryId, findDuplicates, buildBankingRedirectUrl } from "@fintrack/core";
 import type { Category, Currency, Transaction } from "@fintrack/core";
 import {
   deleteSession,
@@ -248,14 +248,20 @@ export async function syncBankConnectionAction(connectionId: string): Promise<Ba
       supabase.from("categories").select("*"),
     ]);
 
-    const duplicateFlags = findLikelyDuplicates(parsedRows, (existingTransactions ?? []) as unknown as Transaction[]);
+    const duplicateFlags = findDuplicates(parsedRows, (existingTransactions ?? []) as unknown as Transaction[]);
     const history = (existingTransactions ?? []).map((t) => ({
       label: t.label,
       merchant: t.merchant,
       category_id: t.category_id,
     }));
 
-    const newRows = parsedRows.filter((_, i) => !duplicateFlags[i]);
+    // No review UI for a sync (ADR-023) — both duplicate tiers are
+    // auto-excluded alike, unlike the CSV import review table which only
+    // auto-excludes the certain tier and leaves the probable tier to the user.
+    const newRows = parsedRows.filter((_, i) => {
+      const flag = duplicateFlags[i];
+      return !flag?.isCertainDuplicate && !flag?.isProbableDuplicate;
+    });
     const duplicatesSkipped = parsedRows.length - newRows.length;
 
     if (newRows.length === 0) {
@@ -269,6 +275,7 @@ export async function syncBankConnectionAction(connectionId: string): Promise<Ba
       amount: row.amount,
       type: row.type,
       currency: row.currency,
+      externalRef: row.externalRef,
       categoryId: suggestCategoryId(
         { label: row.label, merchant: null },
         (categories ?? []) as unknown as Category[],

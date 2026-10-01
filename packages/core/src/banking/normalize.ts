@@ -46,6 +46,11 @@ export function normalizeEnableBankingTransactions(
       amount: Math.round(Math.abs(amountRaw) * 100) / 100,
       type: tx.credit_debit_indicator === "CRDT" ? "income" : "expense",
       currency,
+      // Enable Banking's own transaction identifiers aren't wired into
+      // external_ref yet — out of scope here; the 'dbs:' prefix convention
+      // (see the external_ref migration) leaves room for an 'eb:' one later
+      // without ever colliding with a CSV-imported reference.
+      externalRef: null,
     });
   }
 

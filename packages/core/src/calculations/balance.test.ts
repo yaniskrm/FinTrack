@@ -20,6 +20,7 @@ const makeTx = (overrides: Partial<Transaction>): Transaction => ({
   reimbursement_status: "none",
   reimbursement_contact: null,
   settled_transaction_id: null,
+  external_ref: null,
   created_at: "2024-01-15T00:00:00Z",
   updated_at: "2024-01-15T00:00:00Z",
   ...overrides,
