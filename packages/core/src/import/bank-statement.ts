@@ -1,4 +1,5 @@
 import { parseCsv } from "./parse-csv.js";
+import { detectDbsHeaderIndex, parseDbsRows } from "./dbs.js";
 import { currencySchema } from "../validators/transaction-schema.js";
 import type { Currency } from "../types/index.js";
 
@@ -8,6 +9,12 @@ export interface ParsedStatementRow {
   amount: number; // always positive — see `type` for direction
   type: "income" | "expense"; // never "transfer": a bank export alone can't tell us the destination is another of the user's own tracked accounts (ADR-020) — the user reclassifies manually if needed
   currency: Currency;
+  // A stable, source-prefixed bank reference (e.g. "dbs:000003183851603"),
+  // when the source adapter can derive one — null for banks/row-types with
+  // no such reference (every Revolut row, some DBS row types). Powers the
+  // "certain duplicate" tier in duplicates.ts; see the external_ref
+  // migration's comment for why the matching unique index isn't partial.
+  externalRef: string | null;
 }
 
 export interface ParseBankStatementResult {
@@ -91,6 +98,16 @@ export function parseBankStatement(text: string, fallbackCurrency: Currency): Pa
     return { rows: [], skippedCount: 0, error: "Fichier vide ou illisible." };
   }
 
+  // DBS exports a multi-line preamble before the real header and splits the
+  // amount across separate Debit/Credit columns — structurally incompatible
+  // with the single-header-row, single-amount-column shape assumed below.
+  // Detected by content (not a fixed row index) so a shorter/longer
+  // preamble on a future statement doesn't silently break detection.
+  const dbsHeaderIndex = detectDbsHeaderIndex(table);
+  if (dbsHeaderIndex !== null) {
+    return parseDbsRows(table, dbsHeaderIndex, fallbackCurrency);
+  }
+
   const [header, ...dataRows] = table;
   if (!header) {
     return { rows: [], skippedCount: 0, error: "Fichier vide ou illisible." };
@@ -151,6 +168,7 @@ export function parseBankStatement(text: string, fallbackCurrency: Currency): Pa
       amount: Math.round(Math.abs(net) * 100) / 100,
       type: net > 0 ? "income" : "expense",
       currency,
+      externalRef: null,
     });
   }
 

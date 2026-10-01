@@ -10,6 +10,7 @@ node_modules/
 # Hide Numbers files and CSV files that may contain sensitive data
 *.numbers
 releve_*.csv
+transaction_history_*.csv
 
 # Enable Banking private key (Phase 13) — downloaded from the Control Panel,
 # never committed. The app reads its content from an env var, not this file.

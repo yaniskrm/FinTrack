@@ -8,6 +8,7 @@ const validRow = {
   type: "expense" as const,
   currency: "EUR" as const,
   categoryId: null,
+  externalRef: null,
 };
 
 describe("importRowSchema", () => {
@@ -36,6 +37,10 @@ describe("importRowSchema", () => {
     expect(
       importRowSchema.safeParse({ ...validRow, categoryId: "11111111-1111-4111-8111-111111111111" }).success,
     ).toBe(true);
+  });
+
+  it("accepts a non-null externalRef", () => {
+    expect(importRowSchema.safeParse({ ...validRow, externalRef: "dbs:000003183851603" }).success).toBe(true);
   });
 });
 
