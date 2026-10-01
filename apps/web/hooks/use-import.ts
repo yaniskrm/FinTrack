@@ -14,13 +14,18 @@ export function useImportTransactions() {
     mutationFn: async (batch: ImportBatchInput) => {
       const result = await importTransactionsAction(batch);
       if (!result.ok) throw new Error(result.error);
-      return result.imported;
+      return result;
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Échec de l'import.");
     },
-    onSuccess: (imported) => {
-      toast.success(`${String(imported)} transaction${imported > 1 ? "s" : ""} importée${imported > 1 ? "s" : ""}.`);
+    onSuccess: ({ imported, duplicatesSkipped }) => {
+      const base = `${String(imported)} transaction${imported > 1 ? "s" : ""} importée${imported > 1 ? "s" : ""}.`;
+      toast.success(
+        duplicatesSkipped > 0
+          ? `${base} ${String(duplicatesSkipped)} déjà importée${duplicatesSkipped > 1 ? "s" : ""} ignorée${duplicatesSkipped > 1 ? "s" : ""}.`
+          : base,
+      );
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: TRANSACTIONS_KEY });

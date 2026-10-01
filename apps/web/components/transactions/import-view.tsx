@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Upload } from "lucide-react";
 import {
-  findLikelyDuplicates,
+  findDuplicates,
   formatCurrency,
   parseBankStatement,
   suggestCategoryId,
@@ -24,7 +24,12 @@ const NO_CATEGORY = "none";
 interface ReviewRow extends ParsedStatementRow {
   include: boolean;
   categoryId: string | null;
-  isDuplicate: boolean;
+  /** Same account, same external_ref as an already-imported transaction —
+   * proof, not a guess. Auto-excluded, no checkbox (see render below). */
+  isCertainDuplicate: boolean;
+  /** No reference to compare — exact-match fallback (ADR-021), a guess the
+   * user still decides via a checkbox. */
+  isProbableDuplicate: boolean;
 }
 
 export function ImportView({
@@ -64,20 +69,21 @@ export function ImportView({
     }
 
     const accountTransactions = transactions.filter((t) => t.account_id === accountId);
-    const duplicateFlags = findLikelyDuplicates(
-      result.rows,
-      accountTransactions as unknown as Transaction[],
-    );
+    const duplicateFlags = findDuplicates(result.rows, accountTransactions as unknown as Transaction[]);
     const history = transactions.map((t) => ({ label: t.label, merchant: t.merchant, category_id: t.category_id }));
 
     setSkippedCount(result.skippedCount);
     setReviewRows(
-      result.rows.map((row, i) => ({
-        ...row,
-        include: !duplicateFlags[i],
-        categoryId: suggestCategoryId({ label: row.label, merchant: null }, categories, history),
-        isDuplicate: duplicateFlags[i] ?? false,
-      })),
+      result.rows.map((row, i) => {
+        const flag = duplicateFlags[i];
+        return {
+          ...row,
+          include: !flag?.isCertainDuplicate && !flag?.isProbableDuplicate,
+          categoryId: suggestCategoryId({ label: row.label, merchant: null }, categories, history),
+          isCertainDuplicate: flag?.isCertainDuplicate ?? false,
+          isProbableDuplicate: flag?.isProbableDuplicate ?? false,
+        };
+      }),
     );
   }
 
@@ -98,6 +104,7 @@ export function ImportView({
         type: r.type,
         currency: r.currency,
         categoryId: r.categoryId,
+        externalRef: r.externalRef,
       }));
     importTransactions.mutate(
       { accountId, rows },
@@ -181,21 +188,35 @@ export function ImportView({
 
           <Card className="gap-0 divide-y py-0">
             {reviewRows.map((row, i) => (
-              <div key={`${row.date}-${row.label}-${String(i)}`} className="flex items-center gap-3 px-4 py-3">
-                <input
-                  type="checkbox"
-                  className="size-4 shrink-0 accent-primary"
-                  checked={row.include}
-                  aria-label={`Inclure ${row.label}`}
-                  onChange={(e) => {
-                    updateRow(i, { include: e.target.checked });
-                  }}
-                />
+              <div
+                key={`${row.date}-${row.label}-${String(i)}`}
+                className={cn("flex items-center gap-3 px-4 py-3", row.isCertainDuplicate && "opacity-60")}
+              >
+                {row.isCertainDuplicate ? (
+                  <span className="size-4 shrink-0" aria-hidden="true" />
+                ) : (
+                  <input
+                    type="checkbox"
+                    className="size-4 shrink-0 accent-primary"
+                    checked={row.include}
+                    aria-label={`Inclure ${row.label}`}
+                    onChange={(e) => {
+                      updateRow(i, { include: e.target.checked });
+                    }}
+                  />
+                )}
 
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 truncate text-sm font-medium">
                     {row.label}
-                    {row.isDuplicate && (
+                    {row.isCertainDuplicate && (
+                      <span
+                        className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground"
+                      >
+                        déjà importé
+                      </span>
+                    )}
+                    {row.isProbableDuplicate && (
                       <span
                         className="shrink-0 rounded-full px-1.5 py-0.5 text-xs font-normal"
                         style={{ backgroundColor: "var(--chart-3)", color: "var(--primary-foreground)" }}
@@ -212,6 +233,7 @@ export function ImportView({
                   onValueChange={(v) => {
                     updateRow(i, { categoryId: v === NO_CATEGORY ? null : v });
                   }}
+                  disabled={row.isCertainDuplicate}
                 >
                   <SelectTrigger className="w-[150px]" aria-label={`Catégorie de ${row.label}`}>
                     <SelectValue placeholder="Aucune" />
