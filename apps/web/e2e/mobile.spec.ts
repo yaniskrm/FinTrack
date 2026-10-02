@@ -58,8 +58,10 @@ test.describe("the app on a phone", () => {
     await page.getByRole("link", { name: "Transactions", exact: true }).click();
     await expect(page).toHaveURL(/\/transactions/);
 
-    // The tap target for adding is visible without any keyboard shortcut.
-    await page.getByRole("button", { name: "Ajouter" }).click();
+    // The tap target for adding is visible without any keyboard shortcut. On an
+    // empty list there are two "Ajouter" buttons (the header one and the empty
+    // state's call to action): the header one comes first in the page.
+    await page.locator("main").getByRole("button", { name: "Ajouter" }).first().click();
     const dialog = page.getByRole("dialog", { name: "Nouvelle transaction" });
     await expect(dialog).toBeVisible();
 
