@@ -1,15 +1,18 @@
 "use server";
 
+import { pushEndpointSchema, pushSubscriptionSchema } from "@fintrack/core";
+import type { PushSubscriptionInput } from "@fintrack/core";
 import { createClient } from "../supabase/server";
-
-export interface PushSubscriptionInput {
-  endpoint: string;
-  keys: { p256dh: string; auth: string };
-}
 
 export type PushActionResult = { ok: true } | { ok: false; error: string };
 
 export async function saveSubscriptionAction(input: PushSubscriptionInput): Promise<PushActionResult> {
+  const parsed = pushSubscriptionSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Abonnement invalide." };
+  }
+  const subscription = parsed.data;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,9 +36,9 @@ export async function saveSubscriptionAction(input: PushSubscriptionInput): Prom
     {
       workspace_id: workspace.id,
       user_id: user.id,
-      endpoint: input.endpoint,
-      p256dh: input.keys.p256dh,
-      auth_key: input.keys.auth,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth_key: subscription.keys.auth,
     },
     { onConflict: "user_id,endpoint" },
   );
@@ -47,8 +50,25 @@ export async function saveSubscriptionAction(input: PushSubscriptionInput): Prom
 }
 
 export async function deleteSubscriptionAction(endpoint: string): Promise<PushActionResult> {
+  const parsedEndpoint = pushEndpointSchema.safeParse(endpoint);
+  if (!parsedEndpoint.success) {
+    return { ok: false, error: "Abonnement invalide." };
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { ok: false, error: "Session invalide." };
+  }
+
+  // Scoped by user_id too (RLS already enforces it — defence in depth).
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .delete()
+    .eq("endpoint", parsedEndpoint.data)
+    .eq("user_id", user.id);
 
   if (error) {
     return { ok: false, error: "Désabonnement impossible." };

@@ -1,6 +1,6 @@
 "use server";
 
-import { goalInputSchema } from "@fintrack/core";
+import { goalInputSchema, rowIdSchema } from "@fintrack/core";
 import type { GoalFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { GoalRow } from "./types";
@@ -48,6 +48,10 @@ export async function updateGoalAction(
   id: string,
   values: GoalFormValues,
 ): Promise<GoalMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = goalInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -74,6 +78,10 @@ export async function updateGoalAction(
 }
 
 export async function deleteGoalAction(id: string): Promise<DeleteResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("goals").delete().eq("id", id);
 

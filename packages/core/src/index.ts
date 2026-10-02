@@ -52,3 +52,4 @@ export * from "./validators/investment-schema.js";
 export * from "./validators/category-schema.js";
 export * from "./validators/account-schema.js";
 export * from "./validators/import-schema.js";
+export * from "./validators/action-inputs-schema.js";

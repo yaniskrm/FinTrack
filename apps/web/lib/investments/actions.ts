@@ -1,6 +1,6 @@
 "use server";
 
-import { closeInvestmentSchema, investmentInputSchema, investmentValuationInputSchema } from "@fintrack/core";
+import { closeInvestmentSchema, investmentInputSchema, investmentValuationInputSchema, rowIdSchema } from "@fintrack/core";
 import type { CloseInvestmentFormValues, InvestmentFormValues, InvestmentValuationFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { InvestmentRow, InvestmentValuationRow } from "./types";
@@ -58,6 +58,10 @@ export async function updateInvestmentAction(
   id: string,
   values: InvestmentFormValues,
 ): Promise<InvestmentMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = investmentInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -90,6 +94,10 @@ export async function updateInvestmentAction(
 }
 
 export async function deleteInvestmentAction(id: string): Promise<DeleteResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("investments").delete().eq("id", id);
 

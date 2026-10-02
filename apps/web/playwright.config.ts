@@ -32,6 +32,9 @@ export default defineConfig({
     url: `${baseURL}/login`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-    env: { PORT: String(PORT) },
+    // CSP_ENFORCE: production ships the CSP in Report-Only until it has run
+    // clean (see lib/security/csp.ts); E2E always enforces it so a page that
+    // would break under enforcement fails here first (e2e/security.spec.ts).
+    env: { PORT: String(PORT), CSP_ENFORCE: "true" },
   },
 });
