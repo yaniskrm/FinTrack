@@ -109,7 +109,7 @@ export function RecurringView({
             const category = rule.category_id ? categoryById.get(rule.category_id) : undefined;
             const sign = rule.type === "expense" ? "-" : rule.type === "income" ? "+" : "";
             return (
-              <div key={rule.id} className="group flex items-center gap-3 px-4 py-3">
+              <div key={rule.id} className="group flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
                 <span
                   className="flex size-9 shrink-0 items-center justify-center rounded-full text-base"
                   style={{ backgroundColor: `${category?.color ?? "#8883"}22` }}
@@ -118,19 +118,19 @@ export function RecurringView({
                   {category?.icon ?? <Repeat className="size-4 text-muted-foreground" />}
                 </span>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[7rem] flex-1 sm:min-w-0">
                   <p className="truncate text-sm font-medium">{rule.label}</p>
                   <p className="truncate text-xs text-muted-foreground">
                     {FREQUENCY_LABELS[rule.frequency]} · prochaine échéance {formatDate(rule.next_occurrence)}
                   </p>
                 </div>
 
-                <p className="text-sm font-semibold tabular-nums">
+                <p className="shrink-0 text-sm font-semibold tabular-nums">
                   {sign}
                   {formatCurrency(rule.amount, rule.currency as Currency)}
                 </p>
 
-                <div className="flex items-center gap-0.5">
+                <div className="ml-auto flex items-center gap-0.5">
                   {confirmingDeleteId === rule.id ? (
                     <>
                       <Button

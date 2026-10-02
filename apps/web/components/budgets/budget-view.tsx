@@ -157,7 +157,7 @@ export function BudgetView({
                 </span>
 
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                     <p className="truncate text-sm font-medium">{category?.name ?? "Catégorie"}</p>
                     <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {formatCurrency(status.spent, "EUR")} / {formatCurrency(budget.amount_eur, "EUR")}{" "}

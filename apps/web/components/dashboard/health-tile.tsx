@@ -18,7 +18,7 @@ export function HealthTile({ score, label }: Pick<HealthScore, "score" | "label"
     <Card className="gap-3 p-5">
       <p className="text-sm text-muted-foreground">Score de santé</p>
 
-      <div className="flex items-baseline gap-2">
+      <div className="flex flex-wrap items-baseline gap-2">
         <span className="text-3xl font-semibold tabular-nums text-foreground">{score}</span>
         <span className="text-sm text-muted-foreground">/ 100</span>
         <span

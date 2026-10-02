@@ -62,11 +62,11 @@ export function AllocationDonut<K extends string>({
         </div>
       </div>
 
-      <ul className="min-w-0 flex-1 space-y-1.5">
+      <ul className="w-full min-w-0 flex-1 space-y-1.5 sm:w-auto">
         {data.map((slice) => (
           <li key={slice.name} className="flex items-center gap-2 text-sm">
             <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: slice.color }} />
-            <span className="truncate text-muted-foreground">{slice.name}</span>
+            <span className="min-w-0 truncate text-muted-foreground">{slice.name}</span>
             <span className="ml-auto shrink-0 font-medium tabular-nums text-foreground">
               {formatCurrency(slice.value, "EUR")}
             </span>

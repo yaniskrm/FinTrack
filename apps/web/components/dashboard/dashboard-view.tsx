@@ -91,14 +91,14 @@ export function DashboardView({
               <Link href="/transactions">Ajouter une transaction</Link>
             </Button>
           </Card>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
             <UpcomingRecurring rules={filteredUpcoming} categories={categories} />
             <NetWorthTile investments={investments} />
           </div>
         </>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               label="Solde"
               value={formatCurrency(data.totals.netBalance, "EUR")}
@@ -115,7 +115,7 @@ export function DashboardView({
             <HealthTile score={data.health.score} label={data.health.label} />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Dépenses par catégorie</CardTitle>
