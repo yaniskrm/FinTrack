@@ -219,6 +219,7 @@ Détail complet du workflow (ADR-014) et de l'historique des décisions techniqu
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `apps/web/.env.local` | Non (clé publique) | Générées par `supabase start` en local ; en prod, valeurs du dashboard Supabase. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `apps/web/.env.local` | Non (clé publique) | Notifications push — voir ci-dessous pour la générer. |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | `apps/web/.env.local` / Vercel | Non (clé publique) | CAPTCHA Cloudflare Turnstile sur connexion, inscription, reset et changement de mot de passe. **Absente = CAPTCHA inactif** (cas du dev local et de la CI). En production, à définir **avant** d'activer la protection côté Supabase — ordre d'activation dans `CLAUDE.md`, ADR-029. |
 | `NEXT_PUBLIC_SITE_URL` | `apps/web/.env.local` | Non | Base de l'URL de redirection Open Banking (Enable Banking) en plus des liens email — **doit correspondre au caractère près** à l'URL enregistrée dans le Control Panel Enable Banking pour l'application (Sandbox/Production) utilisée. Voir ci-dessous. |
 | `ENABLE_BANKING_APP_ID` / `ENABLE_BANKING_PRIVATE_KEY_BASE64` | `apps/web/.env.local` (Sandbox) / variables d'environnement Vercel (Production) | **Oui** (la clé) | Voir « Open Banking — Sandbox vs Production » ci-dessous. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secrets Edge Functions (jamais côté client) | **Oui** | Bypass RLS — usage serveur uniquement. |

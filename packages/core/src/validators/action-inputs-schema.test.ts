@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aspspNameSchema,
+  captchaTokenSchema,
   connectionAccountNameSchema,
   countryCodeSchema,
   defaultCurrencySchema,
@@ -109,5 +110,22 @@ describe("pushEndpointSchema", () => {
     expect(pushEndpointSchema.safeParse(validSubscription.endpoint).success).toBe(true);
     expect(pushEndpointSchema.safeParse("ftp://x.example.com").success).toBe(false);
     expect(pushEndpointSchema.safeParse(42).success).toBe(false);
+  });
+});
+
+describe("captchaTokenSchema", () => {
+  it("accepts a Turnstile-shaped token", () => {
+    expect(captchaTokenSchema.safeParse("0.AbCdEf_-123.xyz").success).toBe(true);
+    expect(captchaTokenSchema.safeParse("x".repeat(2048)).success).toBe(true);
+  });
+
+  it("rejects an empty or oversized token", () => {
+    expect(captchaTokenSchema.safeParse("").success).toBe(false);
+    expect(captchaTokenSchema.safeParse("x".repeat(2049)).success).toBe(false);
+  });
+
+  it("rejects non-strings", () => {
+    expect(captchaTokenSchema.safeParse(undefined).success).toBe(false);
+    expect(captchaTokenSchema.safeParse(123).success).toBe(false);
   });
 });

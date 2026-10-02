@@ -51,6 +51,17 @@ enable_confirmations = false
 [auth.sms]
 enable_signup = false
 
+# CAPTCHA (Cloudflare Turnstile) is deliberately OFF locally and in CI: the app
+# only shows the widget when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set, and the E2E
+# suite must not depend on Cloudflare. On the hosted project it is switched on
+# in the dashboard (Authentication → Attack Protection) — NOT from this file.
+# To try it locally, add (with Cloudflare's always-pass test secret):
+#   [auth.captcha]
+#   enabled = true
+#   provider = "turnstile"
+#   secret = "1x0000000000000000000000000000000AA"
+# Activation order matters in production — see CLAUDE.md, ADR-029.
+
 # Enable TOTP two-factor authentication (required for the /settings/security
 # enrollment + /mfa step-up flow). On hosted Supabase this lives in the
 # dashboard: Authentication → Multi-Factor Authentication.

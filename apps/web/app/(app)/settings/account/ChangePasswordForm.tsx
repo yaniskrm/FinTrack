@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { toast } from "sonner";
 import { changePasswordAction } from "../../../../lib/auth/actions";
+import { Turnstile, useCaptcha } from "../../../../components/turnstile";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
@@ -14,6 +15,7 @@ export function ChangePasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const captcha = useCaptcha();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,7 +32,14 @@ export function ChangePasswordForm() {
     }
 
     startTransition(async () => {
-      const result = await changePasswordAction({ currentPassword, password, confirmPassword });
+      const result = await changePasswordAction({
+        currentPassword,
+        password,
+        confirmPassword,
+        captchaToken: captcha.token,
+      });
+      // The re-authentication consumed the token whatever the outcome.
+      captcha.reset();
       if (result?.error) {
         setError(result.error);
       } else {
@@ -90,9 +99,11 @@ export function ChangePasswordForm() {
         />
       </div>
 
+      {captcha.enabled && <Turnstile ref={captcha.widgetRef} onToken={captcha.setToken} />}
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isPending}>
+      <Button type="submit" disabled={isPending || !captcha.ready}>
         {isPending ? "Mise à jour…" : "Changer le mot de passe"}
       </Button>
     </form>

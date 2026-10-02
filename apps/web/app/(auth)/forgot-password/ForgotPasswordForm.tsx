@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { requestPasswordResetAction } from "../../../lib/auth/actions";
 import { Button } from "../../../components/ui/button";
+import { Turnstile, useCaptcha } from "../../../components/turnstile";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
@@ -12,15 +13,17 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const captcha = useCaptcha();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     startTransition(async () => {
-      const result = await requestPasswordResetAction({ email: email.trim() });
+      const result = await requestPasswordResetAction({ email: email.trim(), captchaToken: captcha.token });
       if ("error" in result) {
         setError(result.error);
+        captcha.reset();
       } else {
         setSent(true);
       }
@@ -53,9 +56,11 @@ export function ForgotPasswordForm() {
         />
       </div>
 
+      {captcha.enabled && <Turnstile ref={captcha.widgetRef} onToken={captcha.setToken} />}
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending || !captcha.ready} className="w-full">
         {isPending ? "Envoi…" : "Envoyer le lien"}
       </Button>
     </form>
