@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { signInAction } from "../../../lib/auth/actions";
 import { Button } from "../../../components/ui/button";
+import { Turnstile, useCaptcha } from "../../../components/turnstile";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
@@ -13,15 +14,18 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const captcha = useCaptcha();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     startTransition(async () => {
-      const result = await signInAction({ email: email.trim(), password });
+      const result = await signInAction({ email: email.trim(), password, captchaToken: captcha.token });
       if (result?.error) {
         setError(result.error);
+        // The token was spent on this attempt — get a fresh one.
+        captcha.reset();
       }
     });
   }
@@ -66,9 +70,11 @@ export function LoginForm() {
         />
       </div>
 
+      {captcha.enabled && <Turnstile ref={captcha.widgetRef} onToken={captcha.setToken} />}
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending || !captcha.ready} className="w-full">
         {isPending ? "Connexion…" : "Se connecter"}
       </Button>
     </form>

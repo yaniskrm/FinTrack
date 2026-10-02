@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const headerName = cspHeaderName();
   const policy = buildContentSecurityPolicy({
     nonce,
+    turnstile: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
     isDev: process.env.NODE_ENV !== "production",
   });

@@ -5,6 +5,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { signUpAction } from "../../../lib/auth/actions";
 import { Button } from "../../../components/ui/button";
+import { Turnstile, useCaptcha } from "../../../components/turnstile";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 
@@ -16,6 +17,7 @@ export function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const captcha = useCaptcha();
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,10 +44,12 @@ export function SignUpForm() {
         password,
         confirmPassword,
         consent,
+        captchaToken: captcha.token,
       });
 
       if (result.error) {
         setError(result.error);
+        captcha.reset();
       } else {
         setEmailSent(true);
       }
@@ -128,9 +132,11 @@ export function SignUpForm() {
         </span>
       </label>
 
+      {captcha.enabled && <Turnstile ref={captcha.widgetRef} onToken={captcha.setToken} />}
+
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isPending} className="w-full">
+      <Button type="submit" disabled={isPending || !captcha.ready} className="w-full">
         {isPending ? "Création…" : "Créer mon compte"}
       </Button>
     </form>

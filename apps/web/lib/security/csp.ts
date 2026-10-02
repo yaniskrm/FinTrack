@@ -38,23 +38,38 @@ function originOf(url: string | undefined): string | null {
 
 export interface CspOptions {
   nonce: string;
+  /** True when a Turnstile site key is configured: allow Cloudflare's script, frame and callbacks. */
+  turnstile: boolean;
   /** NEXT_PUBLIC_SUPABASE_URL — becomes the only allowed cross-origin connect target. */
   supabaseUrl: string | undefined;
   isDev: boolean;
 }
 
-export function buildContentSecurityPolicy({ nonce, supabaseUrl, isDev }: CspOptions): string {
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
+export function buildContentSecurityPolicy({ nonce, turnstile, supabaseUrl, isDev }: CspOptions): string {
   const supabaseOrigin = originOf(supabaseUrl);
+  const turnstileSources = turnstile ? [TURNSTILE_ORIGIN] : [];
 
   const directives: Record<string, string[]> = {
     "default-src": ["'self'"],
     // React's dev overlay needs eval; never in production builds.
-    "script-src": ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(isDev ? ["'unsafe-eval'"] : [])],
+    "script-src": [
+      "'self'",
+      `'nonce-${nonce}'`,
+      "'strict-dynamic'",
+      // Ignored by browsers honouring 'strict-dynamic'; kept for those that don't.
+      ...turnstileSources,
+      ...(isDev ? ["'unsafe-eval'"] : []),
+    ],
     "style-src": ["'self'", "'unsafe-inline'"],
     // data: → inline SVG QR code of the TOTP enrolment; blob: → PDF export.
     "img-src": ["'self'", "data:", "blob:"],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", ...(supabaseOrigin ? [supabaseOrigin] : [])],
+    "connect-src": ["'self'", ...(supabaseOrigin ? [supabaseOrigin] : []), ...turnstileSources],
+    // Turnstile renders its challenge in an iframe. Without the widget, frames
+    // fall back to default-src 'self'.
+    ...(turnstile ? { "frame-src": turnstileSources } : {}),
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],
     "object-src": ["'none'"],

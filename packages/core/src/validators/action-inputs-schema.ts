@@ -24,6 +24,13 @@ export const aspspNameSchema = z.string().trim().min(1, "Banque requise").max(10
 /** Name of an account created from a bank connection — same rule as the account form. */
 export const connectionAccountNameSchema = accountInputSchema.shape.name;
 
+/**
+ * Cloudflare Turnstile response token, forwarded to Supabase Auth as
+ * `captchaToken`. Cloudflare documents a maximum length of 2048 characters;
+ * Supabase (not this app) verifies it against the secret key.
+ */
+export const captchaTokenSchema = z.string().min(1, "Vérification requise").max(2048, "Jeton invalide");
+
 const MAX_PUSH_FIELD_LENGTH = 512;
 
 /**
