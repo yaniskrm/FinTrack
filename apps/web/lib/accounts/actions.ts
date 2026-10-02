@@ -1,6 +1,6 @@
 "use server";
 
-import { accountInputSchema, convertToEur } from "@fintrack/core";
+import { accountInputSchema, convertToEur, rowIdSchema } from "@fintrack/core";
 import type { AccountFormValues, Currency, ExchangeRate } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { AccountRow } from "./types";
@@ -79,6 +79,10 @@ export async function updateAccountAction(
   id: string,
   values: AccountFormValues,
 ): Promise<AccountMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = accountInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -113,6 +117,10 @@ export async function updateAccountAction(
 }
 
 export async function setAccountActiveAction(id: string, isActive: boolean): Promise<AccountMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("accounts")

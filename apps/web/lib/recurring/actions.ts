@@ -1,6 +1,6 @@
 "use server";
 
-import { recurringInputSchema } from "@fintrack/core";
+import { recurringInputSchema, rowIdSchema } from "@fintrack/core";
 import type { RecurringFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { RecurringRuleRow } from "./types";
@@ -60,6 +60,10 @@ export async function updateRecurringRuleAction(
   id: string,
   values: RecurringFormValues,
 ): Promise<RecurringMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = recurringInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -93,6 +97,10 @@ export async function updateRecurringRuleAction(
 }
 
 export async function deleteRecurringRuleAction(id: string): Promise<DeleteResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   // Generated transactions are kept (FK is ON DELETE SET NULL).
   const { error } = await supabase.from("recurring_rules").delete().eq("id", id);

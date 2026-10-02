@@ -1,6 +1,6 @@
 "use server";
 
-import { budgetInputSchema } from "@fintrack/core";
+import { budgetInputSchema, rowIdSchema } from "@fintrack/core";
 import type { BudgetFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { BudgetRow } from "./types";
@@ -53,6 +53,10 @@ export async function updateBudgetAction(
   id: string,
   values: BudgetFormValues,
 ): Promise<BudgetMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = budgetInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -78,6 +82,10 @@ export async function updateBudgetAction(
 }
 
 export async function deleteBudgetAction(id: string): Promise<DeleteResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("budgets").delete().eq("id", id);
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { defaultCurrencySchema } from "@fintrack/core";
 import type { Currency } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 
@@ -12,6 +13,11 @@ export type ProfileMutationResult = { ok: true } | { ok: false; error: string };
  * untouched (ADR-005): this only changes the default for future entries.
  */
 export async function updateDefaultCurrencyAction(currency: Currency): Promise<ProfileMutationResult> {
+  const parsedCurrency = defaultCurrencySchema.safeParse(currency);
+  if (!parsedCurrency.success) {
+    return { ok: false, error: "Devise invalide." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,7 +27,7 @@ export async function updateDefaultCurrencyAction(currency: Currency): Promise<P
     return { ok: false, error: "Non authentifié." };
   }
 
-  const { error } = await supabase.from("profiles").update({ default_currency: currency }).eq("id", user.id);
+  const { error } = await supabase.from("profiles").update({ default_currency: parsedCurrency.data }).eq("id", user.id);
 
   if (error) {
     return { ok: false, error: "Mise à jour impossible." };

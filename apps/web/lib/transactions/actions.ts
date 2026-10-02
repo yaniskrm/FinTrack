@@ -1,6 +1,6 @@
 "use server";
 
-import { convertToEur, transactionInputSchema } from "@fintrack/core";
+import { convertToEur, rowIdSchema, transactionInputSchema } from "@fintrack/core";
 import type { Currency, ExchangeRate, TransactionFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { TransactionRow } from "./types";
@@ -70,6 +70,10 @@ export async function updateTransactionAction(
   id: string,
   values: TransactionFormValues,
 ): Promise<MutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = transactionInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -136,6 +140,10 @@ export async function updateTransactionAction(
  * just gets an uncategorized income row instead of a hard failure).
  */
 export async function settleReimbursementAction(id: string): Promise<MutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
 
   const { data: original, error: fetchError } = await supabase
@@ -193,6 +201,10 @@ export async function settleReimbursementAction(id: string): Promise<MutationRes
 }
 
 export async function deleteTransactionAction(id: string): Promise<DeleteResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
 

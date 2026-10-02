@@ -1,6 +1,6 @@
 "use server";
 
-import { categoryInputSchema } from "@fintrack/core";
+import { categoryInputSchema, rowIdSchema } from "@fintrack/core";
 import type { CategoryFormValues } from "@fintrack/core";
 import { createClient } from "../supabase/server";
 import type { CategoryRow } from "../transactions/types";
@@ -40,6 +40,10 @@ export async function updateCategoryAction(
   id: string,
   values: CategoryFormValues,
 ): Promise<CategoryMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const parsed = categoryInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Données invalides." };
@@ -61,6 +65,10 @@ export async function updateCategoryAction(
 }
 
 export async function setCategoryHiddenAction(id: string, hidden: boolean): Promise<CategoryMutationResult> {
+  if (!rowIdSchema.safeParse(id).success) {
+    return { ok: false, error: "Identifiant invalide." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("categories")

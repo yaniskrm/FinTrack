@@ -1,6 +1,14 @@
 "use server";
 
-import { suggestCategoryId, findDuplicates, buildBankingRedirectUrl } from "@fintrack/core";
+import {
+  aspspNameSchema,
+  buildBankingRedirectUrl,
+  connectionAccountNameSchema,
+  countryCodeSchema,
+  findDuplicates,
+  rowIdSchema,
+  suggestCategoryId,
+} from "@fintrack/core";
 import type { Category, Currency, Transaction } from "@fintrack/core";
 import {
   deleteSession,
@@ -16,6 +24,8 @@ import { getEnableBankingCredentials } from "./credentials";
 import type { BankConnectionRow } from "./types";
 
 export type BankingResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
+const INVALID_INPUT = { ok: false, error: "Données invalides." } as const;
 
 // Requested consent length — comfortably under every ASPSP's
 // maximum_consent_validity seen in the sandbox (90+ days), and a
@@ -39,8 +49,19 @@ async function requireWorkspaceId(): Promise<string | null> {
 }
 
 export async function listAspspsForCountryAction(country: string): Promise<BankingResult<EnableBankingAspsp[]>> {
+  const parsedCountry = countryCodeSchema.safeParse(country);
+  if (!parsedCountry.success) return INVALID_INPUT;
+
+  // A Server Action is a public endpoint and this one spends the app's own
+  // Enable Banking credentials — never serve it without a session.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session invalide." };
+
   try {
-    const aspsps = await listAspsps(country, getEnableBankingCredentials());
+    const aspsps = await listAspsps(parsedCountry.data, getEnableBankingCredentials());
     return { ok: true, data: aspsps };
   } catch {
     return { ok: false, error: "Impossible de récupérer la liste des banques." };
@@ -51,13 +72,18 @@ export async function startBankConnectionAction(
   aspspName: string,
   aspspCountry: string,
 ): Promise<BankingResult<{ url: string }>> {
+  const parsedName = aspspNameSchema.safeParse(aspspName);
+  const parsedCountry = countryCodeSchema.safeParse(aspspCountry);
+  if (!parsedName.success || !parsedCountry.success) return INVALID_INPUT;
+  const bank = { name: parsedName.data, country: parsedCountry.data };
+
   const workspaceId = await requireWorkspaceId();
   if (!workspaceId) return { ok: false, error: "Espace introuvable." };
 
   const supabase = await createClient();
   const { data: connection, error: insertError } = await supabase
     .from("bank_connections")
-    .insert({ workspace_id: workspaceId, aspsp_name: aspspName, aspsp_country: aspspCountry, status: "pending" })
+    .insert({ workspace_id: workspaceId, aspsp_name: bank.name, aspsp_country: bank.country, status: "pending" })
     .select("state")
     .single();
 
@@ -70,8 +96,8 @@ export async function startBankConnectionAction(
   try {
     const result = await startAuthorization(
       {
-        aspspName,
-        aspspCountry,
+        aspspName: bank.name,
+        aspspCountry: bank.country,
         redirectUrl: bankingRedirectUrl(),
         state: connection.state,
         validUntil,
@@ -88,6 +114,8 @@ export async function startBankConnectionAction(
 export async function reconnectBankConnectionAction(
   connectionId: string,
 ): Promise<BankingResult<{ url: string }>> {
+  if (!rowIdSchema.safeParse(connectionId).success) return INVALID_INPUT;
+
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("bank_connections")
@@ -127,6 +155,10 @@ export async function linkBankConnectionAction(
   connectionId: string,
   accountId: string,
 ): Promise<BankingResult<BankConnectionRow>> {
+  if (!rowIdSchema.safeParse(connectionId).success || !rowIdSchema.safeParse(accountId).success) {
+    return INVALID_INPUT;
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bank_connections")
@@ -142,6 +174,9 @@ export async function createAccountFromConnectionAction(
   connectionId: string,
   name: string,
 ): Promise<BankingResult<BankConnectionRow>> {
+  const parsedName = connectionAccountNameSchema.safeParse(name);
+  if (!rowIdSchema.safeParse(connectionId).success || !parsedName.success) return INVALID_INPUT;
+
   const workspaceId = await requireWorkspaceId();
   if (!workspaceId) return { ok: false, error: "Espace introuvable." };
 
@@ -157,7 +192,7 @@ export async function createAccountFromConnectionAction(
     .from("accounts")
     .insert({
       workspace_id: workspaceId,
-      name,
+      name: parsedName.data,
       type: "checking",
       currency: connection.currency ?? "EUR",
       initial_balance: 0,
@@ -172,6 +207,8 @@ export async function createAccountFromConnectionAction(
 }
 
 export async function disconnectBankConnectionAction(connectionId: string): Promise<BankingResult<null>> {
+  if (!rowIdSchema.safeParse(connectionId).success) return INVALID_INPUT;
+
   const supabase = await createClient();
   const { data: connection } = await supabase
     .from("bank_connections")
@@ -200,6 +237,8 @@ export interface SyncSummary {
 }
 
 export async function syncBankConnectionAction(connectionId: string): Promise<BankingResult<SyncSummary>> {
+  if (!rowIdSchema.safeParse(connectionId).success) return INVALID_INPUT;
+
   const supabase = await createClient();
   const { data: connection } = await supabase
     .from("bank_connections")
