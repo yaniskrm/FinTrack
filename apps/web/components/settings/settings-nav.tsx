@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Bell, Download, Landmark, Shield, Tag, User } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -16,9 +17,22 @@ const TABS = [
 
 export function SettingsNav() {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+
+  // Six tabs do not fit a phone: the strip scrolls sideways, so make sure the
+  // current section is never the one hidden off-screen.
+  useEffect(() => {
+    navRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [pathname]);
 
   return (
-    <nav className="flex gap-1 border-b" aria-label="Sections des réglages">
+    <nav
+      ref={navRef}
+      className="flex gap-1 overflow-x-auto border-b [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      aria-label="Sections des réglages"
+    >
       {TABS.map(({ href, label, icon: Icon }) => {
         const active = pathname.startsWith(href);
         return (
@@ -27,7 +41,7 @@ export function SettingsNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
               active
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",

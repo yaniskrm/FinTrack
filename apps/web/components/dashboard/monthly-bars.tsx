@@ -34,7 +34,7 @@ export function MonthlyBars({ data }: { data: MonthlyPoint[] }) {
           <YAxis
             tickLine={false}
             axisLine={false}
-            width={48}
+            width={60}
             tick={axisTick}
             tickFormatter={compactEur}
           />

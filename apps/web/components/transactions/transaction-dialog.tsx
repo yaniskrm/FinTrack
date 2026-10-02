@@ -246,7 +246,8 @@ export function TransactionDialog({
           </div>
           {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* One account → full width; a transfer shows "Depuis" + "Vers", side by side from sm up. */}
+          <div className={type === "transfer" ? "grid gap-3 sm:grid-cols-2" : "grid gap-3"}>
             <div className="space-y-2">
               <Label htmlFor="account">{type === "transfer" ? "Depuis" : "Compte"}</Label>
               <Controller

@@ -38,7 +38,7 @@ export function PerformanceChart({ data }: { data: PortfolioHistoryPoint[] }) {
           </defs>
           <CartesianGrid vertical={false} stroke="var(--border)" />
           <XAxis dataKey="date" tickLine={false} axisLine={false} tick={axisTick} />
-          <YAxis tickLine={false} axisLine={false} width={48} tick={axisTick} tickFormatter={compactEur} />
+          <YAxis tickLine={false} axisLine={false} width={60} tick={axisTick} tickFormatter={compactEur} />
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--border)", strokeWidth: 1 }} />
           <Area
             type="monotone"

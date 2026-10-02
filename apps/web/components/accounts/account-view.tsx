@@ -65,7 +65,7 @@ export function AccountView({
   function row(account: AccountRow) {
     const balance = balances.get(account.id) ?? 0;
     return (
-      <div key={account.id} className="flex items-center gap-3 px-4 py-3">
+      <div key={account.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
         <span
           className="flex size-9 shrink-0 items-center justify-center rounded-full text-base"
           style={{ backgroundColor: `${account.color}22` }}
@@ -73,14 +73,14 @@ export function AccountView({
         >
           {account.icon}
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[7rem] flex-1 sm:min-w-0">
           <p className="truncate text-sm font-medium">{account.name}</p>
           <p className="truncate text-xs text-muted-foreground">
             {TYPE_LABELS[account.type]} · {account.currency}
           </p>
         </div>
         <p className="shrink-0 text-sm font-semibold tabular-nums">{formatCurrency(balance, "EUR")}</p>
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5">
           <Button
             variant="ghost"
             size="icon"
