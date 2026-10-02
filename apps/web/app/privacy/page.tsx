@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { publicPageMetadata } from "../../lib/seo";
 
 // TEMPLATE — placeholder RGPD copy generated for Phase 1 scaffolding.
 // Must be reviewed and finalized with legal counsel before production launch:
 // fill in the real data controller identity, DPO contact, and retention
 // periods once they're defined.
 
-export const metadata: Metadata = {
-  title: "Politique de confidentialité — FinTrack",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Politique de confidentialité",
+  description: "Comment FinTrack traite vos données personnelles et financières, et les droits dont vous disposez.",
+  path: "/privacy",
+  indexable: true,
+});
 
 export default function PrivacyPage() {
   return (
