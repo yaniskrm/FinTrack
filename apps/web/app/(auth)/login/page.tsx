@@ -16,7 +16,9 @@ export const metadata: Metadata = publicPageMetadata({
   path: "/login",
 });
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+  const { deleted } = await searchParams;
+
   return (
     <Card>
       <CardHeader className="text-center">
@@ -24,6 +26,11 @@ export default function LoginPage() {
         <CardDescription>Connectez-vous à votre compte</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {deleted === "1" && (
+          <p role="status" className="rounded-lg border border-success/30 bg-success/10 px-4 py-3 text-sm text-foreground">
+            Votre compte et toutes vos données ont été supprimés.
+          </p>
+        )}
         <LoginForm />
         <p className="text-center text-sm text-muted-foreground">
           Pas encore de compte ?{" "}

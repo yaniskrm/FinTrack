@@ -31,6 +31,22 @@ export const connectionAccountNameSchema = accountInputSchema.shape.name;
  */
 export const captchaTokenSchema = z.string().min(1, "Vérification requise").max(2048, "Jeton invalide");
 
+/** The word typed to confirm an irreversible account deletion. */
+export const DELETE_ACCOUNT_CONFIRMATION_WORD = "SUPPRIMER";
+
+/**
+ * Account deletion input. The password re-authenticates the caller (a hijacked
+ * or left-open session must not be able to erase an account); the typed word
+ * guards against a mis-click. Case-sensitive on purpose — it is a deliberate act.
+ */
+export const deleteAccountInputSchema = z.object({
+  password: z.string().min(1, "Mot de passe requis").max(256, "Mot de passe invalide"),
+  confirmation: z
+    .string()
+    .trim()
+    .refine((value) => value === DELETE_ACCOUNT_CONFIRMATION_WORD, "Confirmation incorrecte"),
+});
+
 const MAX_PUSH_FIELD_LENGTH = 512;
 
 /**
