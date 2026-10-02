@@ -78,7 +78,14 @@ export function buildContentSecurityPolicy({ nonce, turnstile, supabaseUrl, isDe
     "frame-ancestors": ["'none'"],
   };
 
-  const parts = Object.entries(directives).map(([name, values]) => `${name} ${values.join(" ")}`);
-  if (!isDev) parts.push("upgrade-insecure-requests");
-  return parts.join("; ");
+  // Deliberately NO `upgrade-insecure-requests`: on a plain-http origin it
+  // rewrites every subresource (including the app's own JS chunks) to https,
+  // which does not exist there — the page renders but never hydrates. WebKit
+  // applies it even to http://127.0.0.1, which broke the whole WebKit E2E run
+  // (Chromium exempts localhost, so Chromium and the PR CI stayed green).
+  // On the real https site it would upgrade nothing, and Strict-Transport-
+  // Security (next.config.ts) already forces https there.
+  return Object.entries(directives)
+    .map(([name, values]) => `${name} ${values.join(" ")}`)
+    .join("; ");
 }
