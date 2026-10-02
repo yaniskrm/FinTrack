@@ -35,6 +35,10 @@ test.describe("security headers", () => {
     const first = (await request.get("/login")).headers()["content-security-policy"] ?? "";
     const second = (await request.get("/login")).headers()["content-security-policy"] ?? "";
 
+    // Regression guard: this directive upgrades the app's own http subresources
+    // on a plain-http origin (CI, local prod build) and breaks hydration — but
+    // only in WebKit, which PR CI does not run. See lib/security/csp.ts.
+    expect(first).not.toContain("upgrade-insecure-requests");
     expect(first).toContain("frame-ancestors 'none'");
     expect(first).toContain("object-src 'none'");
     expect(first).toContain("base-uri 'self'");
