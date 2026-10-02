@@ -3,7 +3,7 @@ import { createClient } from "../../../../lib/supabase/server";
 import { ImportView } from "../../../../components/transactions/import-view";
 
 export const metadata: Metadata = {
-  title: "Importer un relevé — FinTrack",
+  title: "Importer un relevé",
 };
 
 export default async function ImportTransactionsPage() {

@@ -9,7 +9,7 @@ import {
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
-  title: "Nouveau mot de passe — FinTrack",
+  title: "Nouveau mot de passe",
 };
 
 export default function ResetPasswordPage() {

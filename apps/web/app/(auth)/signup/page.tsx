@@ -7,11 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { publicPageMetadata } from "../../../lib/seo";
 import { SignUpForm } from "./SignUpForm";
 
-export const metadata: Metadata = {
-  title: "Créer un compte — FinTrack",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Créer un compte",
+  description: "Créez votre compte FinTrack : saisie rapide, budgets, objectifs et suivi multi-devises.",
+  path: "/signup",
+});
 
 export default function SignUpPage() {
   return (

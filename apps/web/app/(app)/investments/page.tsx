@@ -3,7 +3,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { InvestmentsView } from "../../../components/investments/investments-view";
 
 export const metadata: Metadata = {
-  title: "Investissements — FinTrack",
+  title: "Investissements",
 };
 
 export default async function InvestmentsPage() {

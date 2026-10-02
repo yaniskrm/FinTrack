@@ -4,7 +4,7 @@ import { AccountView } from "../../../../components/accounts/account-view";
 import { BankConnectionsCard } from "../../../../components/accounts/bank-connections-card";
 
 export const metadata: Metadata = {
-  title: "Comptes — FinTrack",
+  title: "Comptes",
 };
 
 export default async function AccountsSettingsPage() {

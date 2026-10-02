@@ -7,11 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { publicPageMetadata } from "../../../lib/seo";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
-export const metadata: Metadata = {
-  title: "Mot de passe oublié — FinTrack",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Mot de passe oublié",
+  description: "Recevez par email un lien pour réinitialiser votre mot de passe FinTrack.",
+  path: "/forgot-password",
+});
 
 export default function ForgotPasswordPage() {
   return (

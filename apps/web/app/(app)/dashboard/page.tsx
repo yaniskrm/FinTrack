@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { createClient } from "../../../lib/supabase/server";
 import { DashboardView } from "../../../components/dashboard/dashboard-view";
+
+export const metadata: Metadata = {
+  title: "Tableau de bord",
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();

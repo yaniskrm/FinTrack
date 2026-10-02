@@ -13,7 +13,7 @@ import { Wordmark } from "../../components/logo";
 import { MfaChallengeForm } from "./MfaChallengeForm";
 
 export const metadata: Metadata = {
-  title: "Vérification — FinTrack",
+  title: "Vérification",
 };
 
 export default async function MfaPage() {

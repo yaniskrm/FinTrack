@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PushNotificationsCard } from "../../../../components/settings/push-notifications-card";
 
 export const metadata: Metadata = {
-  title: "Notifications — FinTrack",
+  title: "Notifications",
 };
 
 export default function NotificationsSettingsPage() {

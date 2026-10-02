@@ -3,7 +3,7 @@ import { createClient } from "../../../../lib/supabase/server";
 import { CategoryView } from "../../../../components/categories/category-view";
 
 export const metadata: Metadata = {
-  title: "Catégories — FinTrack",
+  title: "Catégories",
 };
 
 export default async function CategoriesSettingsPage() {

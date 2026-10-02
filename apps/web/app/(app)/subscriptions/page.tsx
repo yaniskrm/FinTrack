@@ -3,7 +3,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { RecurringView } from "../../../components/recurring/recurring-view";
 
 export const metadata: Metadata = {
-  title: "Abonnements — FinTrack",
+  title: "Abonnements",
 };
 
 export default async function SubscriptionsPage() {
