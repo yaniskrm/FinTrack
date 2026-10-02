@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { fetchMonthlyReportData } from "../../lib/export/queries";
-import { buildMonthlyReportPdf } from "../../lib/export/pdf";
 import { downloadBlob } from "../../lib/export/download";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -23,6 +22,8 @@ export function PdfExportCard() {
     setIsPending(true);
     try {
       const { transactions, categories, budgets } = await fetchMonthlyReportData(month);
+      // jsPDF is large and only needed at export time — load it on demand.
+      const { buildMonthlyReportPdf } = await import("../../lib/export/pdf");
       const pdf = buildMonthlyReportPdf(month, transactions, categories, budgets);
       downloadBlob(pdf, `fintrack-rapport-${month}.pdf`);
     } catch (e) {

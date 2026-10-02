@@ -13,9 +13,7 @@ import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { StatTile } from "./stat-tile";
 import { HealthTile } from "./health-tile";
-import { BalanceSparkline } from "./balance-sparkline";
-import { CategoryDonut } from "./category-donut";
-import { MonthlyBars } from "./monthly-bars";
+import { BalanceSparkline, CategoryDonut, MonthlyBars } from "../charts/lazy-charts";
 import { UpcomingRecurring } from "./upcoming-recurring";
 import { NetWorthTile } from "./net-worth-tile";
 
