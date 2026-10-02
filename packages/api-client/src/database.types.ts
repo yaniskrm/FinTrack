@@ -373,7 +373,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "enforce_aal2_when_enrolled":
+            "delete_my_account":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"enforce_aal2_when_enrolled":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "generate_due_recurring_transactions":

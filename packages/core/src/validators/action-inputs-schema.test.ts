@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   aspspNameSchema,
   captchaTokenSchema,
+  DELETE_ACCOUNT_CONFIRMATION_WORD,
+  deleteAccountInputSchema,
   connectionAccountNameSchema,
   countryCodeSchema,
   defaultCurrencySchema,
@@ -127,5 +129,32 @@ describe("captchaTokenSchema", () => {
   it("rejects non-strings", () => {
     expect(captchaTokenSchema.safeParse(undefined).success).toBe(false);
     expect(captchaTokenSchema.safeParse(123).success).toBe(false);
+  });
+});
+
+describe("deleteAccountInputSchema", () => {
+  const valid = { password: "correct-horse-battery-staple", confirmation: DELETE_ACCOUNT_CONFIRMATION_WORD };
+
+  it("accepts the password plus the exact confirmation word", () => {
+    expect(deleteAccountInputSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("ignores surrounding whitespace around the confirmation word", () => {
+    expect(deleteAccountInputSchema.safeParse({ ...valid, confirmation: "  SUPPRIMER " }).success).toBe(true);
+  });
+
+  it("is case-sensitive — deletion is a deliberate act", () => {
+    expect(deleteAccountInputSchema.safeParse({ ...valid, confirmation: "supprimer" }).success).toBe(false);
+    expect(deleteAccountInputSchema.safeParse({ ...valid, confirmation: "Supprimer" }).success).toBe(false);
+  });
+
+  it("rejects a wrong or empty confirmation", () => {
+    expect(deleteAccountInputSchema.safeParse({ ...valid, confirmation: "" }).success).toBe(false);
+    expect(deleteAccountInputSchema.safeParse({ ...valid, confirmation: "OUI" }).success).toBe(false);
+  });
+
+  it("requires a password, within a sane length", () => {
+    expect(deleteAccountInputSchema.safeParse({ ...valid, password: "" }).success).toBe(false);
+    expect(deleteAccountInputSchema.safeParse({ ...valid, password: "x".repeat(257) }).success).toBe(false);
   });
 });

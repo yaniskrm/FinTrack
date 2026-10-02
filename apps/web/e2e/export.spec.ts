@@ -43,6 +43,22 @@ test.describe("data export", () => {
     const parsed: unknown = JSON.parse(readFileSync(path ?? "", "utf-8"));
     expect(parsed).toHaveProperty("exportedAt");
     expect(parsed).toHaveProperty("transactions");
+
+    // A backup must be restorable and complete: every transaction points at an
+    // account, and every workspace has at least its default account.
+    const backup = parsed as {
+      userEmail: string | null;
+      profile: { default_currency: string } | null;
+      accounts: unknown[];
+      bankConnections: Record<string, unknown>[];
+    };
+    expect(backup.accounts.length).toBeGreaterThan(0);
+    expect(backup.profile?.default_currency).toBeTruthy();
+    expect(backup.userEmail).toMatch(/@/);
+    expect(Array.isArray(backup.bankConnections)).toBe(true);
+    for (const connection of backup.bankConnections) {
+      expect(connection).not.toHaveProperty("session_id");
+    }
   });
 
   test("downloads a monthly PDF report", async ({ page }) => {

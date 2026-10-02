@@ -1,6 +1,8 @@
 import { createClient } from "../supabase/client";
 import type { CategoryRow, TransactionRow } from "../transactions/types";
 import type { RecurringRuleRow } from "../recurring/types";
+import type { AccountRow } from "../accounts/types";
+import type { BankConnectionRow } from "../banking/types";
 import type { BudgetRow } from "../budgets/types";
 import type { GoalRow } from "../goals/types";
 import type { InvestmentRow, InvestmentValuationRow } from "../investments/types";
@@ -26,6 +28,10 @@ export async function fetchTransactionsForExport(
 }
 
 export interface FullExportData {
+  userEmail: string | null;
+  profile: { default_currency: string; locale: string; display_name: string | null; created_at: string } | null;
+  accounts: AccountRow[];
+  bankConnections: Omit<BankConnectionRow, "session_id" | "state" | "enable_account_uid" | "updated_at" | "workspace_id">[];
   transactions: TransactionRow[];
   recurringRules: RecurringRuleRow[];
   categories: CategoryRow[];
@@ -38,8 +44,19 @@ export interface FullExportData {
 /** Everything in the workspace — RGPD "export complet" (droit d'accès / portabilité). */
 export async function fetchFullExportData(): Promise<FullExportData> {
   const supabase = createClient();
-  const [transactions, recurringRules, categories, budgets, goals, investments, investmentValuations] =
-    await Promise.all([
+  const [
+    transactions,
+    recurringRules,
+    categories,
+    budgets,
+    goals,
+    investments,
+    investmentValuations,
+    accounts,
+    bankConnections,
+    profile,
+    authUser,
+  ] = await Promise.all([
       supabase.from("transactions").select("*"),
       supabase.from("recurring_rules").select("*"),
       supabase.from("categories").select("*"),
@@ -47,9 +64,20 @@ export async function fetchFullExportData(): Promise<FullExportData> {
       supabase.from("goals").select("*"),
       supabase.from("investments").select("*"),
       supabase.from("investment_valuations").select("*"),
+      supabase.from("accounts").select("*"),
+      // Explicit columns: the provider's technical correlators stay out of the export.
+      supabase
+        .from("bank_connections")
+        .select("id, account_id, aspsp_name, aspsp_country, iban, currency, status, valid_until, last_synced_at, created_at"),
+      supabase.from("profiles").select("default_currency, locale, display_name, created_at").maybeSingle(),
+      supabase.auth.getUser(),
     ]);
 
   return {
+    userEmail: authUser.data.user?.email ?? null,
+    profile: unwrap(profile),
+    accounts: unwrap(accounts),
+    bankConnections: unwrap(bankConnections),
     transactions: unwrap(transactions),
     recurringRules: unwrap(recurringRules),
     categories: unwrap(categories),

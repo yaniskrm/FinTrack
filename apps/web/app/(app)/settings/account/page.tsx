@@ -12,6 +12,7 @@ import {
 import { ChangeEmailForm } from "./ChangeEmailForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DefaultCurrencyForm } from "./DefaultCurrencyForm";
+import { DeleteAccountForm } from "./DeleteAccountForm";
 
 export const metadata: Metadata = {
   title: "Compte",
@@ -72,6 +73,16 @@ export default async function AccountSettingsPage() {
         </CardHeader>
         <CardContent>
           <DefaultCurrencyForm initialCurrency={(profile?.default_currency as Currency | undefined) ?? "EUR"} />
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/40">
+        <CardHeader>
+          <CardTitle>Supprimer mon compte</CardTitle>
+          <CardDescription>Efface définitivement votre compte et toutes les données associées.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeleteAccountForm />
         </CardContent>
       </Card>
     </>
