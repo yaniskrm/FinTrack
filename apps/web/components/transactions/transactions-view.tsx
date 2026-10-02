@@ -138,7 +138,7 @@ export function TransactionsView({
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
           <p className="text-sm text-muted-foreground">
@@ -286,7 +286,7 @@ export function TransactionsView({
             const toAccount = tx.to_account_id ? accountById.get(tx.to_account_id) : undefined;
             const sign = tx.type === "expense" ? "-" : tx.type === "income" ? "+" : "";
             return (
-              <div key={tx.id} className="group flex items-center gap-3 px-4 py-3">
+              <div key={tx.id} className="group flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
                 <span
                   className="flex size-9 shrink-0 items-center justify-center rounded-full text-base"
                   style={{ backgroundColor: `${category?.color ?? "#8883"}22` }}
@@ -295,7 +295,7 @@ export function TransactionsView({
                   {category?.icon ?? "•"}
                 </span>
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[7rem] flex-1 sm:min-w-0">
                   <p className="flex items-center gap-1.5 truncate text-sm font-medium">
                     {tx.label}
                     {tx.reimbursement_status !== "none" && (
@@ -326,7 +326,7 @@ export function TransactionsView({
                   </p>
                 </div>
 
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p
                     className={cn(
                       "text-sm font-semibold tabular-nums",
@@ -352,7 +352,7 @@ export function TransactionsView({
                   )}
                 </div>
 
-                <div className="flex items-center gap-0.5">
+                <div className="ml-auto flex items-center gap-0.5">
                   {confirmingDeleteId === tx.id ? (
                     <>
                       <Button

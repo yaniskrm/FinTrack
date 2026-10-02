@@ -76,7 +76,7 @@ function SummaryTile({ label, value, sub }: { label: string; value: string; sub?
   return (
     <Card className="gap-2 p-5">
       <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+      <p className="break-words text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
       {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
     </Card>
   );
@@ -140,7 +140,7 @@ export function InvestmentsView({
         </Card>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SummaryTile label="Valeur du portefeuille" value={formatCurrency(summary.totalCurrentValueEur, "EUR")} />
             <SummaryTile
               label="Plus/moins-value latente"
@@ -183,9 +183,9 @@ export function InvestmentsView({
                 openPositions.map((investment) => {
                   const pnl = calculatePositionPnL(investment);
                   return (
-                    <div key={investment.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-baseline justify-between gap-2">
+                    <div key={investment.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 sm:flex-nowrap">
+                      <div className="min-w-full flex-1 space-y-1 sm:min-w-0">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                           <p className="truncate text-sm font-medium">
                             {investment.name}
                             {investment.ticker && (
@@ -207,7 +207,7 @@ export function InvestmentsView({
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-0.5">
+                      <div className="ml-auto flex shrink-0 items-center gap-0.5">
                         {confirmingDeleteId === investment.id ? (
                           <>
                             <Button
@@ -292,7 +292,7 @@ export function InvestmentsView({
                   return (
                     <div key={investment.id} className="flex items-center gap-3 px-4 py-3">
                       <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-baseline justify-between gap-2">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                           <p className="truncate text-sm font-medium text-muted-foreground">{investment.name}</p>
                           <PnlText valueEur={pnl.realizedPnlEur} percent={pnl.realizedPnlPercent} />
                         </div>

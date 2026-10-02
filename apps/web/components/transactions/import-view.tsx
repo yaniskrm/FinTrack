@@ -190,7 +190,10 @@ export function ImportView({
             {reviewRows.map((row, i) => (
               <div
                 key={`${row.date}-${row.label}-${String(i)}`}
-                className={cn("flex items-center gap-3 px-4 py-3", row.isCertainDuplicate && "opacity-60")}
+                className={cn(
+                  "flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap",
+                  row.isCertainDuplicate && "opacity-60",
+                )}
               >
                 {row.isCertainDuplicate ? (
                   <span className="size-4 shrink-0" aria-hidden="true" />
@@ -206,7 +209,7 @@ export function ImportView({
                   />
                 )}
 
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[8rem] flex-1 sm:min-w-0">
                   <p className="flex items-center gap-1.5 truncate text-sm font-medium">
                     {row.label}
                     {row.isCertainDuplicate && (
@@ -235,7 +238,7 @@ export function ImportView({
                   }}
                   disabled={row.isCertainDuplicate}
                 >
-                  <SelectTrigger className="w-[150px]" aria-label={`Catégorie de ${row.label}`}>
+                  <SelectTrigger className="order-last w-full sm:order-none sm:w-[150px]" aria-label={`Catégorie de ${row.label}`}>
                     <SelectValue placeholder="Aucune" />
                   </SelectTrigger>
                   <SelectContent>
@@ -250,7 +253,7 @@ export function ImportView({
 
                 <p
                   className={cn(
-                    "w-24 shrink-0 text-right text-sm font-semibold tabular-nums",
+                    "shrink-0 whitespace-nowrap text-right text-sm font-semibold tabular-nums sm:w-24",
                     row.type === "income" ? "text-success" : "text-foreground",
                   )}
                 >

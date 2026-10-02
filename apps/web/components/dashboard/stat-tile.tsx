@@ -18,7 +18,7 @@ export function StatTile({
       <p className="text-sm text-muted-foreground">{label}</p>
       <p
         className={cn(
-          "text-2xl font-semibold tracking-tight tabular-nums",
+          "break-words text-2xl font-semibold tracking-tight tabular-nums",
           tone === "income" && "text-success",
           tone === "expense" && "text-foreground",
         )}

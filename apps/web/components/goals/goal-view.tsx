@@ -93,7 +93,7 @@ export function GoalView({ initialGoals }: { initialGoals: GoalRow[] }) {
                 </span>
 
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                     <p className="truncate text-sm font-medium">{goal.name}</p>
                     <p className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {formatCurrency(goal.current_amount_eur, "EUR")} /{" "}
@@ -106,7 +106,7 @@ export function GoalView({ initialGoals }: { initialGoals: GoalRow[] }) {
                       style={{ width: `${String(progress.percentage)}%`, backgroundColor: status.color }}
                     />
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1">
                       <span
                         aria-hidden
