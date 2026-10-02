@@ -2,9 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
+    paths-ignore: ["docs/**", "**/*.md"]
   pull_request:
     branches: [main, staging]
+    paths-ignore: ["docs/**", "**/*.md"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -14,14 +16,15 @@ jobs:
   # ─── Lint + Typecheck ───────────────────────────────────────
   quality:
     name: Lint & Typecheck
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         # version is read automatically from packageManager in package.json
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -38,13 +41,14 @@ jobs:
   # ─── Unit tests (packages/core) ────────────────────────────
   unit-tests:
     name: Unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -63,15 +67,23 @@ jobs:
         continue-on-error: true
 
   # ─── Build (apps/web) ───────────────────────────────────────
+  # Deliberately NOT redundant with the e2e job's own build step: this one
+  # builds with placeholder env vars (NEXT_PUBLIC_SUPABASE_URL etc. unset for
+  # real), catching build-time failures that only show up when secrets aren't
+  # configured yet — e.g. a hard crash baking a malformed placeholder URL into
+  # a statically generated page. The e2e job's build always has real local
+  # Supabase credentials, so it never exercises that path. Two different
+  # failure modes, two builds — see CLAUDE.md, Workflow Git.
   build-web:
     name: Build web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -91,41 +103,42 @@ jobs:
   # Requires self-hosted runner with Docker, or GitHub's larger runners.
   # integration-tests:
   #   name: Integration tests
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-24.04
   #   if: github.base_ref == 'main' || github.ref == 'refs/heads/main'
   #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: pnpm/action-setup@v4
-  #     - uses: actions/setup-node@v4
+  #     - uses: actions/checkout@v7
+  #     - uses: pnpm/action-setup@v6
+  #     - uses: actions/setup-node@v7
   #       with:
   #         node-version: 22
   #         cache: pnpm
-  #     - uses: supabase/setup-cli@v1
+  #     - uses: supabase/setup-cli@v3
   #       with:
   #         version: latest
   #     - run: pnpm install --frozen-lockfile
   #     - run: supabase start
   #     - run: supabase db reset
   #     - run: pnpm --filter @fintrack/core test
-  #     - if: always()
-  #       run: supabase stop
 
   # ─── E2E (Playwright, against Supabase local + a production build) ────
+  # No `needs:` — starts immediately in parallel with quality/unit-tests/
+  # build-web rather than waiting on them, since none of their outputs feed
+  # into this job (each job does its own independent install/build).
   e2e:
     name: E2E (Playwright)
-    runs-on: ubuntu-latest
-    needs: [quality, unit-tests, build-web]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
       # Matches apps/web/playwright.config.ts — keeps this job's own build
       # output separate from a plain `pnpm build`'s `.next` (irrelevant on an
       # ephemeral runner, but keeps local/CI behavior identical).
       NEXT_DIST_DIR: .next-verify
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -133,8 +146,75 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
-        run: pnpm --filter @fintrack/web exec playwright install --with-deps chromium webkit
+      # Chromium only on PRs (the common, high-frequency case) — webkit adds
+      # a large extra OS dependency tree (GStreamer/codecs/fonts) for a
+      # browser-engine check that only needs to run before something lands on
+      # main. See the "pw-install slow" investigation in CLAUDE.md for why
+      # this specific split, rather than dropping webkit outright, was chosen.
+      - name: Determine Playwright browsers for this run
+        id: browsers
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BROWSERS="chromium"
+          else
+            BROWSERS="chromium webkit"
+          fi
+          {
+            echo "list=$BROWSERS"
+            echo "key=$(echo "$BROWSERS" | tr ' ' '-')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve exact Playwright version (cache key input)
+        id: pw-version
+        run: echo "version=$(node -p "require('./apps/web/node_modules/@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # Saves the browser binary download/verify step on a hit — never the
+      # slow part (confirmed: ~10s total even on a full miss), but a real,
+      # free win and exactly what was asked for.
+      - name: Cache Playwright browser binaries
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw-version.outputs.version }}-${{ steps.browsers.outputs.key }}
+
+      # The actual bottleneck: `playwright install --with-deps` spends ~33 of
+      # its ~34 minutes in `apt-get install`'s package-FETCH phase (confirmed
+      # via the job log: "Fetched 125 MB in 33min 14s (62.8 kB/s)" from
+      # azure.archive.ubuntu.com — not downloading Playwright's own browser
+      # binaries, which take ~10s). Caching ~/.cache/ms-playwright alone
+      # can't fix this: that path never held the slow part, and the OS .deb
+      # packages install system-wide via apt, not into a user cache dir.
+      # Caching the downloaded .debs themselves is what lets apt skip the
+      # network fetch on a hit. /var/cache/apt/archives is root-owned by
+      # default (actions/cache restores as the unprivileged runner user), so
+      # it's chowned first; the glob excludes the root-owned `partial/`
+      # scratch subdirectory, which doesn't need to survive between runs.
+      - name: Prepare apt archive cache directory
+        run: |
+          sudo mkdir -p /var/cache/apt/archives/partial
+          sudo chown -R "$(id -u):$(id -g)" /var/cache/apt/archives
+
+      - name: Cache apt packages for Playwright OS dependencies
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: ${{ runner.os }}-apt-playwright-${{ steps.browsers.outputs.key }}-v1
+
+      # Split in two so a browser-binary cache hit skips straight to the OS
+      # dependency install, rather than having `install --with-deps` redo
+      # the CDN download/verify this cache already covers. Both branches
+      # still run apt-get for the OS packages either way; the apt-archives
+      # cache above is what makes *that* part fast.
+      - name: Install Playwright browsers + OS deps (binary cache miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 8
+        run: pnpm --filter @fintrack/web exec playwright install --with-deps ${{ steps.browsers.outputs.list }}
+
+      - name: Install Playwright OS deps only (binaries already cached)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 8
+        run: pnpm --filter @fintrack/web exec playwright install-deps ${{ steps.browsers.outputs.list }}
 
       # Pinned, not "latest": CI was hitting "Espace introuvable." (no
       # workspace found) on the very first request after signup — the
@@ -145,7 +225,7 @@ jobs:
       # locally against 2.75.0 (extensively retested, including from-scratch
       # `db reset`s). Pin to the version this workflow is actually verified
       # against; bump deliberately, not implicitly on every run.
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.75.0
 
@@ -182,17 +262,19 @@ jobs:
         run: pnpm turbo build --filter=@fintrack/web
 
       - name: Run Playwright tests
-        run: pnpm --filter @fintrack/web exec playwright test
+        run: |
+          PROJECT_FLAGS=""
+          for browser in ${{ steps.browsers.outputs.list }}; do
+            PROJECT_FLAGS="$PROJECT_FLAGS --project=$browser"
+          done
+          pnpm --filter @fintrack/web exec playwright test $PROJECT_FLAGS
         env:
           CI: true
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 14
-
-      - if: always()
-        run: supabase stop
