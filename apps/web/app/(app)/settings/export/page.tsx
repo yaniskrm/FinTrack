@@ -4,7 +4,7 @@ import { JsonExportCard } from "../../../../components/settings/json-export-card
 import { PdfExportCard } from "../../../../components/settings/pdf-export-card";
 
 export const metadata: Metadata = {
-  title: "Export — FinTrack",
+  title: "Export",
 };
 
 export default function ExportSettingsPage() {

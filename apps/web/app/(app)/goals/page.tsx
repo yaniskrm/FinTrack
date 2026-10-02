@@ -3,7 +3,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { GoalView } from "../../../components/goals/goal-view";
 
 export const metadata: Metadata = {
-  title: "Objectifs — FinTrack",
+  title: "Objectifs",
 };
 
 export default async function GoalsPage() {

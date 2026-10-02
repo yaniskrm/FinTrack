@@ -7,11 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../components/ui/card";
+import { publicPageMetadata } from "../../../lib/seo";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = {
-  title: "Connexion — FinTrack",
-};
+export const metadata: Metadata = publicPageMetadata({
+  title: "Connexion",
+  description: "Connectez-vous à votre espace FinTrack pour suivre vos finances personnelles.",
+  path: "/login",
+});
 
 export default function LoginPage() {
   return (

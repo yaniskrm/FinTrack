@@ -14,7 +14,7 @@ import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DefaultCurrencyForm } from "./DefaultCurrencyForm";
 
 export const metadata: Metadata = {
-  title: "Compte — FinTrack",
+  title: "Compte",
 };
 
 export default async function AccountSettingsPage() {

@@ -4,7 +4,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { TransactionsView } from "../../../components/transactions/transactions-view";
 
 export const metadata: Metadata = {
-  title: "Transactions — FinTrack",
+  title: "Transactions",
 };
 
 export default async function TransactionsPage() {

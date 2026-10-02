@@ -3,7 +3,7 @@ import { createClient } from "../../../lib/supabase/server";
 import { BudgetView } from "../../../components/budgets/budget-view";
 
 export const metadata: Metadata = {
-  title: "Budget — FinTrack",
+  title: "Budget",
 };
 
 export default async function BudgetPage() {

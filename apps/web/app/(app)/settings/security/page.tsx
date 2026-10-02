@@ -11,7 +11,7 @@ import { EnrollTotp } from "./EnrollTotp";
 import { DisableTotp } from "./DisableTotp";
 
 export const metadata: Metadata = {
-  title: "Sécurité — FinTrack",
+  title: "Sécurité",
 };
 
 export default async function SecuritySettingsPage() {
